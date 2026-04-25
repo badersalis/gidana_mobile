@@ -1,0 +1,51 @@
+import { MD3LightTheme } from 'react-native-paper';
+
+export const theme = {
+  ...MD3LightTheme,
+  colors: {
+    ...MD3LightTheme.colors,
+    primary: '#0d5c03',
+    primaryContainer: '#e8f5e2',
+    secondary: '#27ae60',
+    secondaryContainer: '#D5F5E3',
+    error: '#E74C3C',
+    background: '#F8F9FA',
+    surface: '#FFFFFF',
+    onPrimary: '#FFFFFF',
+    onSecondary: '#FFFFFF',
+  },
+  fonts: {
+    ...MD3LightTheme.fonts,
+    default: { fontFamily: 'Poppins-Regular', fontWeight: 'normal' as const },
+    bodySmall:   { fontFamily: 'Poppins-Regular',  fontSize: 12, fontWeight: 'normal'  as const, lineHeight: 16 },
+    bodyMedium:  { fontFamily: 'Poppins-Regular',  fontSize: 14, fontWeight: 'normal'  as const, lineHeight: 20 },
+    bodyLarge:   { fontFamily: 'Poppins-Regular',  fontSize: 16, fontWeight: 'normal'  as const, lineHeight: 24 },
+    labelSmall:  { fontFamily: 'Poppins-Medium',   fontSize: 11, fontWeight: '500'     as const, lineHeight: 16 },
+    labelMedium: { fontFamily: 'Poppins-Medium',   fontSize: 12, fontWeight: '500'     as const, lineHeight: 16 },
+    labelLarge:  { fontFamily: 'Poppins-Medium',   fontSize: 14, fontWeight: '500'     as const, lineHeight: 20 },
+    titleSmall:  { fontFamily: 'Poppins-SemiBold', fontSize: 14, fontWeight: '600'     as const, lineHeight: 20 },
+    titleMedium: { fontFamily: 'Poppins-SemiBold', fontSize: 16, fontWeight: '600'     as const, lineHeight: 24 },
+    titleLarge:  { fontFamily: 'Poppins-Bold',     fontSize: 22, fontWeight: '700'     as const, lineHeight: 28 },
+    headlineSmall:  { fontFamily: 'Poppins-Bold', fontSize: 24, fontWeight: '700' as const, lineHeight: 32 },
+    headlineMedium: { fontFamily: 'Poppins-Bold', fontSize: 28, fontWeight: '700' as const, lineHeight: 36 },
+    headlineLarge:  { fontFamily: 'Poppins-Bold', fontSize: 32, fontWeight: '700' as const, lineHeight: 40 },
+    displaySmall:   { fontFamily: 'Poppins-Bold', fontSize: 36, fontWeight: '700' as const, lineHeight: 44 },
+    displayMedium:  { fontFamily: 'Poppins-Bold', fontSize: 45, fontWeight: '700' as const, lineHeight: 52 },
+    displayLarge:   { fontFamily: 'Poppins-Bold', fontSize: 57, fontWeight: '700' as const, lineHeight: 64 },
+  },
+};
+
+export const COLORS = {
+  primary:      '#0d5c03',
+  primaryLight: '#e8f5e2',
+  secondary:    '#27ae60',
+  secondaryLight: '#D5F5E3',
+  accent:   '#F39C12',
+  danger:   '#E74C3C',
+  background: '#F8F9FA',
+  card:     '#FFFFFF',
+  text:     '#111111',
+  textLight: '#7F8C8D',
+  border:   '#ECF0F1',
+  shadow:   'rgba(0,0,0,0.1)',
+};

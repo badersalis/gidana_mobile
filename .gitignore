@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Native build outputs
+android/
+ios/
+*.apk
+*.ipa
+*.aab
+
+# EAS
+.easignore
+
+# Expo Doctor
+expo-env.d.ts
+
+# Metro bundler cache
+.metro-health-check*
+
+# Babel cache
+.babel_cache/
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

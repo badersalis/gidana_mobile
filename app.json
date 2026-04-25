@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "Gidana",
+    "slug": "gidana",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/android-chrome-512x512.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/android-chrome-512x512.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1B4F72"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.gidana.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/android-chrome-512x512.png",
+        "backgroundColor": "#1B4F72"
+      },
+      "package": "com.gidana.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-font"
+    ],
+    "newArchEnabled": false
+  }
+}
