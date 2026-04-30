@@ -6,8 +6,7 @@ const BASE_URL =
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
-  timeout: 15000,
-  headers: { 'Content-Type': 'application/json' },
+headers: { 'Content-Type': 'application/json' },
 });
 
 apiClient.interceptors.request.use(async (config) => {

@@ -1,27 +1,29 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { useNavigation } from '@react-navigation/native';
-import React, { useState } from 'react';
-import { 
-  Alert, 
-  Image, 
-  ScrollView, 
-  StyleSheet, 
-  TouchableOpacity, 
-  View, 
-  SafeAreaView, 
+import { useNavigation, useRoute } from '@react-navigation/native';
+import React, { useRef, useState } from 'react';
+import {
+  Alert,
+  Image,
+  ScrollView,
+  TouchableOpacity,
+  View,
   StatusBar,
   Dimensions,
-  Platform
+  Platform,
 } from 'react-native';
+import styles from './AddPropertyScreen.styles';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Text, TextInput, ActivityIndicator } from 'react-native-paper';
+import { geocodingApi, GeoPlace } from '../../api/geocoding';
+import { useLocation } from '../../hooks/useLocation';
 import { propertyApi } from '../../api/properties';
+import { Property } from '../../types';
 import { COLORS } from '../../utils/theme';
 
 const { width } = Dimensions.get('window');
 const PROPERTY_TYPES = ['Studio', 'Appart', 'Maison'];
 const CURRENCIES = ['XOF', 'EUR', 'USD'];
-const SHOWER_TYPES = ['interne', 'externe'];
 
 // Helper function for alerts (works on both mobile and web)
 const showAlert = (title: string, message?: string, onOk?: () => void) => {
@@ -37,28 +39,81 @@ const showAlert = (title: string, message?: string, onOk?: () => void) => {
   }
 };
 
+type RouteParams = {
+  mode?: 'edit';
+  propertyId?: number;
+  property?: Property;
+};
+
 export default function AddPropertyScreen() {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  const params = (route.params ?? {}) as RouteParams;
+  const isEditMode = params.mode === 'edit';
+  const editProperty = params.property;
+
+  const toSelectorType = (t?: string) =>
+    t === 'Appartement' ? 'Appart' : (t ?? 'Appart');
+
   const [loading, setLoading] = useState(false);
 
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [neighborhood, setNeighborhood] = useState('');
-  const [country, setCountry] = useState('');
-  const [propertyType, setPropertyType] = useState('Appart');
-  const [transactionType, setTransactionType] = useState('À louer');
-  const [rooms, setRooms] = useState('');
-  const [bathrooms, setBathrooms] = useState('');
-  const [surface, setSurface] = useState('');
-  const [price, setPrice] = useState('');
-  const [currency, setCurrency] = useState('XOF');
-  const [whatsapp, setWhatsapp] = useState('');
-  const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
-  const [showerType, setShowerType] = useState('interne');
-  const [hasWater, setHasWater] = useState(false);
-  const [hasElectricity, setHasElectricity] = useState(false);
-  const [hasCourtyard, setHasCourtyard] = useState(false);
+  // Location & address autocomplete
+  const { loading: locationLoading, requestLocation } = useLocation();
+  const [addressSuggestions, setAddressSuggestions] = useState<GeoPlace[]>([]);
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+  const addressDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  async function handleDetectLocation() {
+    const place = await requestLocation();
+    if (!place) {
+      showAlert('Erreur', 'Impossible de détecter votre position. Vérifiez les permissions.');
+      return;
+    }
+    if (place.neighborhood) setNeighborhood(place.neighborhood);
+    if (place.country) setCountry(place.country);
+    if (place.city) setAddress(place.city + (place.neighborhood ? `, ${place.neighborhood}` : ''));
+  }
+
+  function onAddressChange(text: string) {
+    setAddress(text);
+    if (addressDebounce.current) clearTimeout(addressDebounce.current);
+    if (text.length >= 3) {
+      addressDebounce.current = setTimeout(async () => {
+        const places = await geocodingApi.autocomplete(text);
+        setAddressSuggestions(places);
+        setShowAddressSuggestions(places.length > 0);
+      }, 350);
+    } else {
+      setAddressSuggestions([]);
+      setShowAddressSuggestions(false);
+    }
+  }
+
+  function selectAddressSuggestion(place: GeoPlace) {
+    setAddress(place.displayName);
+    if (!neighborhood && place.neighborhood) setNeighborhood(place.neighborhood);
+    if (!country && place.country) setCountry(place.country);
+    setShowAddressSuggestions(false);
+  }
+
+  const [title, setTitle] = useState(editProperty?.title ?? '');
+  const [description, setDescription] = useState(editProperty?.description ?? '');
+  const [neighborhood, setNeighborhood] = useState(editProperty?.neighborhood ?? '');
+  const [country, setCountry] = useState(editProperty?.country ?? '');
+  const [propertyType, setPropertyType] = useState(toSelectorType(editProperty?.property_type));
+  const [transactionType, setTransactionType] = useState(editProperty?.transaction_type ?? 'À louer');
+  const [rooms, setRooms] = useState(editProperty?.rooms != null ? String(editProperty.rooms) : '');
+  const [bathrooms, setBathrooms] = useState(editProperty?.bathrooms != null ? String(editProperty.bathrooms) : '');
+  const [surface, setSurface] = useState(editProperty?.surface != null ? String(editProperty.surface) : '');
+  const [price, setPrice] = useState(editProperty?.price != null ? String(editProperty.price) : '');
+  const [currency, setCurrency] = useState(editProperty?.currency ?? 'XOF');
+  const [whatsapp, setWhatsapp] = useState(editProperty?.whatsapp_contact ?? '');
+  const [phone, setPhone] = useState(editProperty?.phone_contact ?? '');
+  const [address, setAddress] = useState(editProperty?.exact_address ?? '');
+  const [showerType, setShowerType] = useState(editProperty?.shower_type ?? 'interne');
+  const [hasWater, setHasWater] = useState(editProperty?.has_water ?? false);
+  const [hasElectricity, setHasElectricity] = useState(editProperty?.has_electricity ?? false);
+  const [hasCourtyard, setHasCourtyard] = useState(editProperty?.has_courtyard ?? false);
   const [images, setImages] = useState<string[]>([]);
 
   async function pickImages() {
@@ -117,11 +172,11 @@ export default function AddPropertyScreen() {
   }
 
   async function handleSubmit() {
-    if (!title || !neighborhood || !country || !rooms || !bathrooms || !price) {
-      showAlert('Erreur', 'Veuillez remplir tous les champs obligatoires');
+    if (!title || !neighborhood || !country || !rooms || !bathrooms || !price || !whatsapp) {
+      showAlert('Erreur', 'Veuillez remplir tous les champs obligatoires (WhatsApp inclus)');
       return;
     }
-    if (images.length < 3) {
+    if (!isEditMode && images.length < 3) {
       showAlert('Erreur', `Minimum 3 photos requises (vous en avez ${images.length})`);
       return;
     }
@@ -157,10 +212,15 @@ export default function AddPropertyScreen() {
     });
 
     try {
-      await propertyApi.create(formData);
-      showAlert('Succès', 'Propriété ajoutée avec succès', () => navigation.goBack());
+      if (isEditMode && params.propertyId) {
+        await propertyApi.update(params.propertyId, formData);
+        showAlert('Succès', 'Votre annonce a été mise à jour', () => navigation.goBack());
+      } else {
+        await propertyApi.create(formData);
+        navigation.navigate('Home', { added: Date.now() });
+      }
     } catch (e: any) {
-      showAlert('Erreur', e.response?.data?.error ?? 'Erreur lors de l\'ajout');
+      showAlert('Erreur', e.response?.data?.error ?? (isEditMode ? 'Erreur lors de la modification' : 'Erreur lors de l\'ajout'));
     } finally {
       setLoading(false);
     }
@@ -174,7 +234,7 @@ export default function AddPropertyScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Ajouter une propriété</Text>
+        <Text style={styles.headerTitle}>{isEditMode ? 'Modifier l\'annonce' : 'Ajouter une propriété'}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -280,37 +340,79 @@ export default function AddPropertyScreen() {
 
         {/* Location */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Localisation</Text>
-          
-          <TextInput 
-            mode="outlined" 
-            label="Quartier *" 
-            value={neighborhood} 
-            onChangeText={setNeighborhood} 
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Localisation</Text>
+            <TouchableOpacity
+              style={styles.detectBtn}
+              onPress={handleDetectLocation}
+              activeOpacity={0.7}
+              disabled={locationLoading}
+            >
+              {locationLoading ? (
+                <ActivityIndicator size={14} color={COLORS.primary} />
+              ) : (
+                <Ionicons name="navigate" size={15} color={COLORS.primary} />
+              )}
+              <Text style={styles.detectBtnText}>
+                {locationLoading ? 'Détection…' : 'Détecter ma position'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <TextInput
+            mode="outlined"
+            label="Quartier *"
+            value={neighborhood}
+            onChangeText={setNeighborhood}
             style={styles.input}
             outlineColor="#e9ecef"
             activeOutlineColor={COLORS.primary}
           />
-          
-          <TextInput 
-            mode="outlined" 
-            label="Pays *" 
-            value={country} 
-            onChangeText={setCountry} 
+
+          <TextInput
+            mode="outlined"
+            label="Pays *"
+            value={country}
+            onChangeText={setCountry}
             style={styles.input}
             outlineColor="#e9ecef"
             activeOutlineColor={COLORS.primary}
           />
-          
-          <TextInput 
-            mode="outlined" 
-            label="Adresse exacte (optionnel)" 
-            value={address} 
-            onChangeText={setAddress} 
-            style={styles.input}
-            outlineColor="#e9ecef"
-            activeOutlineColor={COLORS.primary}
-          />
+
+          {/* Address with autocomplete */}
+          <View style={styles.autocompleteWrapper}>
+            <TextInput
+              mode="outlined"
+              label="Adresse exacte (optionnel)"
+              value={address}
+              onChangeText={onAddressChange}
+              onBlur={() => setTimeout(() => setShowAddressSuggestions(false), 200)}
+              style={styles.input}
+              outlineColor="#e9ecef"
+              activeOutlineColor={COLORS.primary}
+            />
+            {showAddressSuggestions && (
+              <View style={styles.addressDropdown}>
+                {addressSuggestions.map((place, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    style={styles.addressSuggestionItem}
+                    onPress={() => selectAddressSuggestion(place)}
+                  >
+                    <Ionicons name="location-outline" size={16} color="#e67e22" />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.addressSuggestionText} numberOfLines={1}>
+                        {[place.neighborhood, place.city].filter(Boolean).join(', ') || place.displayName}
+                      </Text>
+                      {place.country ? (
+                        <Text style={styles.addressSuggestionSub}>{place.country}</Text>
+                      ) : null}
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
         </View>
 
         {/* Features */}
@@ -342,7 +444,7 @@ export default function AddPropertyScreen() {
           
           <TextInput 
             mode="outlined" 
-            label="Surface (m²)" 
+            label="Surface (mÂ²)" 
             value={surface} 
             onChangeText={setSurface} 
             keyboardType="numeric" 
@@ -423,10 +525,10 @@ export default function AddPropertyScreen() {
             </View>
           </View>
 
-          <TextInput 
-            mode="outlined" 
-            label="WhatsApp" 
-            value={whatsapp} 
+          <TextInput
+            mode="outlined"
+            label="WhatsApp *"
+            value={whatsapp}
             onChangeText={setWhatsapp} 
             keyboardType="phone-pad" 
             style={styles.input}
@@ -456,7 +558,9 @@ export default function AddPropertyScreen() {
           buttonColor={COLORS.primary}
           labelStyle={styles.submitLabel}
         >
-          {loading ? 'Publication en cours...' : 'Publier la propriété'}
+          {loading
+            ? (isEditMode ? 'Mise à jour...' : 'Publication en cours...')
+            : (isEditMode ? 'Enregistrer les modifications' : 'Continuer')}
         </Button>
         
         <View style={{ height: 60 }} />
@@ -465,246 +569,3 @@ export default function AddPropertyScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontFamily: 'Poppins-SemiBold',
-    color: '#333',
-  },
-  container: { 
-    flex: 1, 
-    backgroundColor: '#f8f9fa',
-  },
-  scroll: { 
-    padding: 16, 
-    paddingBottom: 40,
-  },
-  section: {
-    marginBottom: 20,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginBottom: 4,
-  },
-  sectionTitle: { 
-    fontSize: 18, 
-    fontFamily: 'Poppins-Bold', 
-    color: '#333',
-    marginBottom: 12,
-  },
-  sectionSubtitle: {
-    fontSize: 14,
-    fontFamily: 'Poppins-Medium',
-    color: COLORS.primary,
-  },
-  sectionDescription: {
-    fontSize: 12,
-    fontFamily: 'Poppins-Regular',
-    color: '#999',
-    marginBottom: 12,
-  },
-  label: { 
-    fontSize: 14, 
-    fontFamily: 'Poppins-Medium',
-    color: '#666', 
-    marginBottom: 8, 
-    marginTop: 8,
-  },
-  input: { 
-    marginBottom: 12, 
-    backgroundColor: '#fff',
-    fontSize: 15,
-  },
-  row: { 
-    flexDirection: 'row', 
-    gap: 12,
-  },
-  half: { 
-    flex: 1,
-  },
-  buttonGroup: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 12,
-  },
-  optionButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: '#e9ecef',
-    backgroundColor: '#fff',
-    alignItems: 'center',
-  },
-  optionButtonActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  optionText: {
-    fontSize: 14,
-    fontFamily: 'Poppins-Medium',
-    color: '#666',
-  },
-  optionTextActive: {
-    color: '#fff',
-  },
-  imageGrid: { 
-    flexDirection: 'row', 
-    flexWrap: 'wrap', 
-    gap: 10,
-  },
-  imageWrapper: { 
-    position: 'relative',
-    width: (width - 62) / 3,
-    height: (width - 62) / 3,
-  },
-  imageThumb: { 
-    width: '100%', 
-    height: '100%', 
-    borderRadius: 10,
-  },
-  removeImage: { 
-    position: 'absolute', 
-    top: -6, 
-    right: -6,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    borderRadius: 12,
-    padding: 2,
-  },
-  imageNumber: {
-    position: 'absolute',
-    bottom: 4,
-    left: 4,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  imageNumberText: {
-    color: '#fff',
-    fontSize: 10,
-    fontFamily: 'Poppins-Medium',
-  },
-  addImageBtn: {
-    width: (width - 62) / 3,
-    height: (width - 62) / 3,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: COLORS.primary,
-    borderStyle: 'dashed',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-  },
-  addImageText: {
-    marginTop: 4,
-    fontSize: 11,
-    fontFamily: 'Poppins-Medium',
-    color: COLORS.primary,
-  },
-  checkboxContainer: {
-    marginTop: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 8,
-  },
-  checkboxItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-  },
-  checkboxChecked: {
-    backgroundColor: COLORS.primary,
-  },
-  checkboxLabel: {
-    fontSize: 13,
-    fontFamily: 'Poppins-Regular',
-    color: '#333',
-  },
-  priceContainer: {
-    marginBottom: 12,
-  },
-  priceInput: {
-    marginBottom: 10,
-    backgroundColor: '#fff',
-  },
-  currencySelector: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  currencyButton: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: '#e9ecef',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  currencyButtonActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  currencyText: {
-    fontSize: 13,
-    fontFamily: 'Poppins-Medium',
-    color: '#666',
-  },
-  currencyTextActive: {
-    color: '#fff',
-  },
-  submitBtn: { 
-    marginTop: 8, 
-    borderRadius: 12,
-  },
-  submitContent: { 
-    paddingVertical: 10,
-    height: 50,
-  },
-  submitLabel: {
-    fontSize: 16,
-    fontFamily: 'Poppins-SemiBold',
-  },
-});

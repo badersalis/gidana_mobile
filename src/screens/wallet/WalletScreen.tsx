@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { Alert, FlatList, RefreshControl, View } from 'react-native';
+import styles from './WalletScreen.styles';
 import { ActivityIndicator, Button, FAB, Text } from 'react-native-paper';
 import WalletCard from '../../components/WalletCard';
 import { walletApi } from '../../api/wallet';
@@ -122,18 +123,3 @@ export default function WalletScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  loader: { marginTop: 100 },
-  header: { padding: 16, paddingTop: 20 },
-  headerTitle: { fontWeight: '700', color: COLORS.text },
-  empty: { alignItems: 'center', paddingTop: 80, paddingHorizontal: 32 },
-  emptyText: { fontSize: 18, fontWeight: '700', color: COLORS.textLight, marginTop: 16 },
-  emptySubtext: { color: COLORS.textLight, textAlign: 'center', marginTop: 8 },
-  fab: { position: 'absolute', right: 16, bottom: 24, backgroundColor: COLORS.primary },
-  authPrompt: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32, gap: 12 },
-  authTitle: { fontSize: 17, fontWeight: '700', color: COLORS.text, textAlign: 'center', marginTop: 16 },
-  authSub: { color: COLORS.textLight, textAlign: 'center', marginBottom: 8 },
-  authBtn: { width: '100%', borderRadius: 8 },
-  regBtn: { width: '100%', borderRadius: 8, borderColor: COLORS.primary },
-});

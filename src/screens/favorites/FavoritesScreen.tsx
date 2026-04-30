@@ -1,13 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, TouchableOpacity, View, SafeAreaView, StatusBar } from 'react-native';
+import { FlatList, RefreshControl, TouchableOpacity, View, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityIndicator, Text } from 'react-native-paper';
 import PropertyCard from '../../components/PropertyCard';
 import { favoritesApi } from '../../api/favorites';
 import { useAuthStore } from '../../store/authStore';
 import { Property } from '../../types';
 import { COLORS } from '../../utils/theme';
+import styles from './FavoritesScreen.styles';
 
 export default function FavoritesScreen() {
   const navigation = useNavigation<any>();
@@ -87,6 +89,13 @@ export default function FavoritesScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Mes favoris</Text>
+        <View style={{ width: 40 }} />
+      </View>
       <FlatList
         style={styles.container}
         data={favorites}
@@ -125,94 +134,3 @@ export default function FavoritesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-  },
-  container: { 
-    flex: 1, 
-    backgroundColor: '#f8f9fa',
-  },
-  listContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 16,
-  },
-  emptyContainer: {
-    flexGrow: 1,
-  },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-  },
-  loaderText: {
-    fontSize: 14,
-    fontFamily: 'Poppins-Regular',
-    color: '#666',
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-    paddingVertical: 80,
-    gap: 12,
-  },
-  iconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#f0f0f0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    fontFamily: 'Poppins-SemiBold',
-    color: '#333',
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  emptyText: {
-    fontSize: 14,
-    fontFamily: 'Poppins-Regular',
-    color: '#999',
-    textAlign: 'center',
-    maxWidth: 260,
-    lineHeight: 20,
-  },
-  primaryBtn: {
-    marginTop: 16,
-    width: '100%',
-    backgroundColor: COLORS.primary,
-    borderRadius: 50,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  primaryBtnText: { 
-    color: '#fff', 
-    fontWeight: '600', 
-    fontSize: 15,
-    fontFamily: 'Poppins-SemiBold',
-  },
-  outlineBtn: {
-    width: '100%',
-    borderRadius: 50,
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
-    paddingVertical: 14,
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  outlineBtnText: { 
-    color: COLORS.primary, 
-    fontWeight: '600', 
-    fontSize: 15,
-    fontFamily: 'Poppins-SemiBold',
-  },
-});

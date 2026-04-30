@@ -1,6 +1,7 @@
-import { useNavigation } from '@react-navigation/native';
+﻿import { useNavigation } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { FlatList, RefreshControl, TouchableOpacity, View } from 'react-native';
+import styles from './TransactionsScreen.styles';
 import { ActivityIndicator, Text } from 'react-native-paper';
 import TransactionItem from '../../components/TransactionItem';
 import { transactionApi } from '../../api/transactions';
@@ -81,11 +82,3 @@ export default function TransactionsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  loader: { marginTop: 100 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: 20 },
-  headerTitle: { fontWeight: '700', color: COLORS.text },
-  empty: { alignItems: 'center', paddingTop: 80 },
-  emptyText: { fontSize: 16, color: COLORS.textLight, marginTop: 12 },
-});

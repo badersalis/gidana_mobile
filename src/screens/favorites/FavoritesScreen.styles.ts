@@ -1,0 +1,116 @@
+import { StyleSheet } from 'react-native';
+import { COLORS } from '../../utils/theme';
+
+export default StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontFamily: 'Poppins-Bold',
+    fontSize: 20,
+    color: '#333',
+  },
+  container: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+  },
+  listContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
+  },
+  emptyContainer: {
+    flexGrow: 1,
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  loaderText: {
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: '#666',
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 80,
+    gap: 12,
+  },
+  iconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#f0f0f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
+    color: '#333',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: '#999',
+    textAlign: 'center',
+    maxWidth: 260,
+    lineHeight: 20,
+  },
+  primaryBtn: {
+    marginTop: 16,
+    width: '100%',
+    backgroundColor: COLORS.primary,
+    borderRadius: 50,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  primaryBtnText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 15,
+    fontFamily: 'Poppins-SemiBold',
+  },
+  outlineBtn: {
+    width: '100%',
+    borderRadius: 50,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    paddingVertical: 14,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  outlineBtnText: {
+    color: COLORS.primary,
+    fontWeight: '600',
+    fontSize: 15,
+    fontFamily: 'Poppins-SemiBold',
+  },
+});

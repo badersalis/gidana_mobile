@@ -1,24 +1,27 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { geocodingApi, GeoPlace } from '../../api/geocoding';
+import { useLocation } from '../../hooks/useLocation';
 import {
   FlatList,
   RefreshControl,
   ScrollView,
-  StyleSheet,
   TextInput,
   TouchableOpacity,
   View,
-  SafeAreaView,
   StatusBar,
   Alert,
 } from 'react-native';
+import styles from './ExploreScreen.styles';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityIndicator, Text } from 'react-native-paper';
 import PropertyCard from '../../components/PropertyCard';
 import { favoritesApi } from '../../api/favorites';
 import { propertyApi } from '../../api/properties';
 import { searchApi } from '../../api/search';
 import { useAuthStore } from '../../store/authStore';
+import { alertsApi } from '../../api/alerts';
 import { Property, SearchHistoryItem } from '../../types';
 import { COLORS } from '../../utils/theme';
 
@@ -48,6 +51,9 @@ export default function ExploreScreen() {
   const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [geoPlaces, setGeoPlaces] = useState<GeoPlace[]>([]);
+
+  const { place: userPlace, loading: locationLoading, requestLocation } = useLocation();
 
   const searchInputRef = useRef<TextInput>(null);
   const debounceTimer = useRef<NodeJS.Timeout>();
@@ -83,16 +89,28 @@ export default function ExploreScreen() {
 
   async function fetchSuggestions() {
     if (searchQuery.length < 2) return;
-    
+
     setLoadingSuggestions(true);
     try {
-      const suggestionsData = await searchApi.getSuggestions(searchQuery);
+      const [suggestionsData, places] = await Promise.all([
+        searchApi.getSuggestions(searchQuery).catch(() => [] as string[]),
+        geocodingApi.autocomplete(searchQuery).catch(() => [] as GeoPlace[]),
+      ]);
       setSuggestions(suggestionsData);
+      setGeoPlaces(places);
       setShowSuggestions(true);
     } catch (error) {
       console.error('Error fetching suggestions:', error);
     } finally {
       setLoadingSuggestions(false);
+    }
+  }
+
+  async function handleNearMe() {
+    const place = await requestLocation();
+    if (place) {
+      const query = place.city || place.neighborhood;
+      if (query) performSearch(query);
     }
   }
 
@@ -150,7 +168,7 @@ export default function ExploreScreen() {
             try {
               await searchApi.clearSearchHistory();
               setSearchHistory([]);
-              Alert.alert('Succès', 'Historique effacé');
+              Alert.alert('Historique effacé', 'Vos recherches récentes ont été supprimées.');
             } catch (error) {
               Alert.alert('Erreur', 'Impossible d\'effacer l\'historique');
             }
@@ -207,6 +225,36 @@ export default function ExploreScreen() {
     }
   }
 
+  async function handleCreateAlert() {
+    if (!isAuthenticated) { navigation.navigate('Login'); return; }
+    const criteria: string[] = [];
+    if (searchQuery) criteria.push(`Lieu : ${searchQuery}`);
+    if (activeFilter !== 'Tout') criteria.push(`Transaction : ${activeFilter}`);
+    if (propertyType) criteria.push(`Type : ${propertyType}`);
+    Alert.alert(
+      'Créer une alerte',
+      `Vous serez notifié dès qu'une propriété correspond à :\n${criteria.length ? criteria.join('\n') : 'tous les critères actuels'}`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Créer',
+          onPress: async () => {
+            try {
+              await alertsApi.create({
+                neighborhood: searchQuery || undefined,
+                transaction_type: activeFilter !== 'Tout' ? activeFilter : undefined,
+                property_type: propertyType || undefined,
+              });
+              Alert.alert('Alerte créée', 'Vous serez notifié dès qu\'une propriété correspond à vos critères.');
+            } catch (e: any) {
+              Alert.alert('Erreur', e.response?.data?.error ?? 'Impossible de créer l\'alerte');
+            }
+          },
+        },
+      ]
+    );
+  }
+
   async function handleToggleFavorite(property: Property) {
     if (!isAuthenticated) { navigation.navigate('Login'); return; }
     try {
@@ -242,34 +290,43 @@ export default function ExploreScreen() {
 
       {/* Search bar with suggestions */}
       <View style={styles.searchSection}>
-        <View style={styles.searchField}>
-          <Ionicons name="search-outline" size={20} color="#adb5bd" style={styles.searchIcon} />
-          <TextInput
-            ref={searchInputRef}
-            style={styles.searchInput}
-            placeholder="Quartier, ville, pays…"
-            placeholderTextColor="#adb5bd"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            returnKeyType="search"
-            clearButtonMode="never"
-            onSubmitEditing={() => performSearch(searchQuery)}
-            onFocus={() => {
-              if (searchQuery.length >= 2 && suggestions.length > 0) {
-                setShowSuggestions(true);
-              } else if (isAuthenticated && searchHistory.length > 0 && !searchQuery) {
-                setShowSuggestions(true);
-              }
-            }}
-            onBlur={() => {
-              setTimeout(() => setShowSuggestions(false), 200);
-            }}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={clearSearch} style={styles.clearBtn}>
-              <Ionicons name="close-circle" size={20} color="#adb5bd" />
-            </TouchableOpacity>
-          )}
+        <View style={styles.searchRow}>
+          <View style={[styles.searchField, { flex: 1 }]}>
+            <Ionicons name="search-outline" size={20} color="#adb5bd" style={styles.searchIcon} />
+            <TextInput
+              ref={searchInputRef}
+              style={styles.searchInput}
+              placeholder="Quartier, ville, pays…"
+              placeholderTextColor="#adb5bd"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              returnKeyType="search"
+              clearButtonMode="never"
+              onSubmitEditing={() => performSearch(searchQuery)}
+              onFocus={() => {
+                if (searchQuery.length >= 2 && (suggestions.length > 0 || geoPlaces.length > 0)) {
+                  setShowSuggestions(true);
+                } else if (isAuthenticated && searchHistory.length > 0 && !searchQuery) {
+                  setShowSuggestions(true);
+                }
+              }}
+              onBlur={() => {
+                setTimeout(() => setShowSuggestions(false), 200);
+              }}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={clearSearch} style={styles.clearBtn}>
+                <Ionicons name="close-circle" size={20} color="#adb5bd" />
+              </TouchableOpacity>
+            )}
+          </View>
+          <TouchableOpacity style={styles.nearMeBtn} onPress={handleNearMe} activeOpacity={0.7}>
+            {locationLoading ? (
+              <ActivityIndicator size={18} color={COLORS.primary} />
+            ) : (
+              <Ionicons name="navigate" size={20} color={userPlace ? COLORS.primary : '#adb5bd'} />
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* Suggestions Dropdown */}
@@ -279,19 +336,45 @@ export default function ExploreScreen() {
               <View style={styles.suggestionItem}>
                 <ActivityIndicator size="small" color={COLORS.primary} />
               </View>
-            ) : suggestions.length > 0 ? (
+            ) : suggestions.length > 0 || geoPlaces.length > 0 ? (
               <>
-                <Text style={styles.suggestionsHeader}>Suggestions</Text>
-                {suggestions.map((suggestion, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.suggestionItem}
-                    onPress={() => performSearch(suggestion)}
-                  >
-                    <Ionicons name="search-outline" size={18} color={COLORS.primary} />
-                    <Text style={styles.suggestionText}>{suggestion}</Text>
-                  </TouchableOpacity>
-                ))}
+                {suggestions.length > 0 && (
+                  <>
+                    <Text style={styles.suggestionsHeader}>Suggestions</Text>
+                    {suggestions.map((suggestion, index) => (
+                      <TouchableOpacity
+                        key={`s-${index}`}
+                        style={styles.suggestionItem}
+                        onPress={() => performSearch(suggestion)}
+                      >
+                        <Ionicons name="search-outline" size={18} color={COLORS.primary} />
+                        <Text style={styles.suggestionText}>{suggestion}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </>
+                )}
+                {geoPlaces.length > 0 && (
+                  <>
+                    <Text style={styles.suggestionsHeader}>Lieux</Text>
+                    {geoPlaces.map((place, index) => (
+                      <TouchableOpacity
+                        key={`g-${index}`}
+                        style={styles.suggestionItem}
+                        onPress={() => performSearch(place.city || place.neighborhood || place.displayName)}
+                      >
+                        <Ionicons name="location-outline" size={18} color="#e67e22" />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.suggestionText} numberOfLines={1}>
+                            {[place.neighborhood, place.city].filter(Boolean).join(', ') || place.displayName}
+                          </Text>
+                          {place.country ? (
+                            <Text style={styles.suggestionSubtext}>{place.country}</Text>
+                          ) : null}
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </>
+                )}
               </>
             ) : isAuthenticated && searchHistory.length > 0 && !searchQuery ? (
               <>
@@ -341,7 +424,7 @@ export default function ExploreScreen() {
               activeOpacity={0.8}
             >
               <Text style={[styles.chipText, styles.chipTextActive]}>
-                {propertyType} ×
+                {propertyType} Ã—
               </Text>
             </TouchableOpacity>
           )}
@@ -355,7 +438,7 @@ export default function ExploreScreen() {
             <Text style={styles.filterLabel}>Prix min</Text>
             <TextInput
               style={styles.filterInput}
-              placeholder="0 €"
+              placeholder="0 FCFA"
               placeholderTextColor="#adb5bd"
               keyboardType="numeric"
             />
@@ -373,7 +456,7 @@ export default function ExploreScreen() {
             <Text style={styles.filterLabel}>Surface min</Text>
             <TextInput
               style={styles.filterInput}
-              placeholder="0 m²"
+              placeholder="0 mÂ²"
               placeholderTextColor="#adb5bd"
               keyboardType="numeric"
             />
@@ -432,6 +515,12 @@ export default function ExploreScreen() {
               >
                 <Text style={styles.resetBtnText}>Réinitialiser les filtres</Text>
               </TouchableOpacity>
+              {(searchQuery || activeFilter !== 'Tout' || propertyType) && (
+                <TouchableOpacity style={styles.alertBtn} onPress={handleCreateAlert}>
+                  <Ionicons name="notifications-outline" size={16} color="#fff" />
+                  <Text style={styles.alertBtnText}>Créer une alerte pour cette recherche</Text>
+                </TouchableOpacity>
+              )}
             </View>
           }
           contentContainerStyle={properties.length === 0 ? styles.emptyContainer : styles.listContainer}
@@ -441,261 +530,3 @@ export default function ExploreScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-  },
-  container: { flex: 1, backgroundColor: COLORS.background },
-
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontFamily: 'Poppins-SemiBold',
-    color: '#333',
-  },
-  filterButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // Search section
-  searchSection: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
-    zIndex: 1,
-  },
-  searchField: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-    borderWidth: 1.5,
-    borderColor: '#e9ecef',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 4,
-    gap: 8,
-  },
-  searchIcon: { flexShrink: 0 },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#212529',
-    paddingVertical: 10,
-    fontFamily: 'Poppins-Regular',
-  },
-  clearBtn: {
-    padding: 4,
-    flexShrink: 0,
-  },
-
-  // Suggestions dropdown
-  suggestionsContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginTop: 8,
-    paddingVertical: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-    maxHeight: 300,
-    zIndex: 1000,
-  },
-  suggestionsHeader: {
-    fontSize: 12,
-    fontFamily: 'Poppins-Medium',
-    color: '#999',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  historyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingRight: 16,
-  },
-  clearHistoryText: {
-    fontSize: 12,
-    fontFamily: 'Poppins-Medium',
-    color: COLORS.primary,
-  },
-  suggestionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 12,
-  },
-  suggestionText: {
-    flex: 1,
-    fontSize: 14,
-    fontFamily: 'Poppins-Regular',
-    color: '#333',
-  },
-
-  // Filter chips
-  filterChips: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingTop: 12,
-    paddingBottom: 4,
-  },
-  chip: {
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: '#dee2e6',
-    backgroundColor: '#fff',
-  },
-  chipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  chipText: {
-    fontSize: 14,
-    fontFamily: 'Poppins-Medium',
-    color: '#495057',
-  },
-  chipTextActive: { color: '#fff' },
-
-  // Advanced Filters
-  advancedFilters: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
-  },
-  filterRow: {
-    marginBottom: 12,
-  },
-  filterLabel: {
-    fontSize: 13,
-    fontFamily: 'Poppins-Medium',
-    color: '#666',
-    marginBottom: 6,
-  },
-  filterInput: {
-    borderWidth: 1,
-    borderColor: '#e9ecef',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    fontFamily: 'Poppins-Regular',
-    color: '#333',
-    backgroundColor: '#f8f9fa',
-  },
-  applyFiltersBtn: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  applyFiltersText: {
-    color: '#fff',
-    fontFamily: 'Poppins-SemiBold',
-    fontSize: 14,
-  },
-
-  // Results
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-  },
-  loaderText: {
-    fontSize: 14,
-    fontFamily: 'Poppins-Regular',
-    color: '#666',
-  },
-  listContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 16,
-  },
-  emptyContainer: { flexGrow: 1 },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-    paddingTop: 60,
-  },
-  emptyIconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#f0f0f0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontFamily: 'Poppins-Bold',
-    color: '#333',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  emptyText: {
-    fontSize: 14,
-    fontFamily: 'Poppins-Regular',
-    color: '#999',
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 24,
-  },
-  resetBtn: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 25,
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
-  },
-  resetBtnText: {
-    color: COLORS.primary,
-    fontFamily: 'Poppins-SemiBold',
-    fontSize: 14,
-  },
-  loadingMore: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
-    gap: 8,
-  },
-  loadingMoreText: {
-    fontSize: 13,
-    fontFamily: 'Poppins-Regular',
-    color: '#666',
-  },
-});

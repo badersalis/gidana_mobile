@@ -7,11 +7,34 @@ export interface User {
   profile_picture?: string;
   gender?: string;
   date_of_birth?: string;
+  country?: string;
   member_since: string;
   active: boolean;
   locale: string;
   timezone: string;
   created_at?: string;
+}
+
+export interface Message {
+  id: number;
+  conversation_id: number;
+  sender_id: number;
+  content: string;
+  created_at: string;
+  sender?: User;
+}
+
+export interface Conversation {
+  id: number;
+  property_id: number;
+  owner_id: number;
+  tenant_id: number;
+  created_at: string;
+  property?: Property;
+  owner?: User;
+  tenant?: User;
+  last_message?: Message;
+  messages?: Message[];
 }
 
 export interface PropertyImage {
@@ -55,6 +78,7 @@ export interface Property {
   is_available: boolean;
   owner_id: number;
   owner?: User;
+  user?: User;
   images?: PropertyImage[];
   reviews?: Review[];
   average_rating: number;

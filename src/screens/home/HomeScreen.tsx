@@ -1,26 +1,30 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation } from '../../hooks/useLocation';
 import {
   Dimensions,
   FlatList,
   Image,
   ImageBackground,
+  Modal,
   RefreshControl,
   ScrollView,
-  StyleSheet,
   TouchableOpacity,
   View,
-  SafeAreaView,
   StatusBar,
 } from 'react-native';
-import { ActivityIndicator, Text, Avatar } from 'react-native-paper';
+import styles from './HomeScreen.styles';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, Text, Avatar, Snackbar } from 'react-native-paper';
 import GuestPromptModal from '../../components/GuestPromptModal';
 import PropertyCard from '../../components/PropertyCard';
 import { favoritesApi } from '../../api/favorites';
 import { propertyApi } from '../../api/properties';
 import { useAuthStore } from '../../store/authStore';
+import { useAlertStore, PropertyNotification } from '../../store/alertStore';
+import { formatCurrency } from '../../utils/currency';
 import { Property } from '../../types';
 import { COLORS } from '../../utils/theme';
 
@@ -34,26 +38,47 @@ const CATEGORIES = [
 
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
   const [featured, setFeatured] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showGuestModal, setShowGuestModal] = useState(false);
-  const guestTimerRef = useRef<ReturnType<typeof setTimeout>>();
-  const guestIntervalRef = useRef<ReturnType<typeof setInterval>>();
+  const [snackVisible, setSnackVisible] = useState(false);
+  const [notifModalVisible, setNotifModalVisible] = useState(false);
+  const { notifications, unreadCount, markAllRead } = useAlertStore();
+  const guestTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const guestIntervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+  const { place: userPlace, loading: locationLoading, requestLocation } = useLocation();
 
-  async function loadFeatured() {
+  useEffect(() => {
+    requestLocation();
+  }, []);
+
+  async function loadFeatured(attempt = 1) {
     try {
       const { data } = await propertyApi.featured();
       setFeatured(data.data);
-    } catch (error) {
+    } catch (error: any) {
+      if (attempt < 3 && !error?.response) {
+        await new Promise((r) => setTimeout(r, 3000 * attempt));
+        return loadFeatured(attempt + 1);
+      }
       console.error('Error loading featured:', error);
     }
     setLoading(false);
   }
 
-  useEffect(() => { loadFeatured(); }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadFeatured();
+    }, [])
+  );
+
+  useEffect(() => {
+    if (route.params?.added) setSnackVisible(true);
+  }, [route.params?.added]);
 
   useEffect(() => {
     if (isAuthenticated) return;
@@ -94,33 +119,47 @@ export default function HomeScreen() {
         <View style={styles.headerContent}>
           <Text style={styles.logo}>Gidana</Text>
           <View style={styles.headerActions}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.headerIconBtn}
               onPress={() => navigation.navigate('Explore')}
             >
               <Ionicons name="search-outline" size={22} color="#fff" />
             </TouchableOpacity>
-            
+
+            {isAuthenticated && (
+              <TouchableOpacity
+                style={styles.headerIconBtn}
+                onPress={() => { setNotifModalVisible(true); markAllRead(); }}
+              >
+                <Ionicons name="notifications-outline" size={22} color="#fff" />
+                {unreadCount > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            )}
+
             {isAuthenticated ? (
               <>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.addPropertyBtn}
                   onPress={() => navigation.navigate('AddProperty')}
                 >
                   <Ionicons name="add" size={20} color="#fff" />
                 </TouchableOpacity>
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => navigation.navigate('Profile')}
                   style={styles.avatarLink}
                 >
-                  <Avatar.Image 
-                    size={34} 
+                  <Avatar.Image
+                    size={34}
                     source={{ uri: user?.profile_picture || 'https://www.gravatar.com/avatar/placeholder?d=mp' }}
                   />
                 </TouchableOpacity>
               </>
             ) : (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.loginBtn}
                 onPress={() => navigation.navigate('Login')}
               >
@@ -137,7 +176,7 @@ export default function HomeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Modern Hero Section ── */}
+        {/* â”€â”€ Modern Hero Section â”€â”€ */}
         <View style={styles.heroSection}>
           <ImageBackground
             source={require('../../../assets/hero-img.jpeg')}
@@ -150,21 +189,39 @@ export default function HomeScreen() {
               style={styles.heroOverlay}
             >
               <View style={styles.heroContent}>
+                {/* Location badge */}
+                <TouchableOpacity style={styles.locationBadge} onPress={requestLocation} activeOpacity={0.7}>
+                  <Ionicons name="location-sharp" size={14} color="rgba(255,255,255,0.9)" />
+                  {locationLoading ? (
+                    <ActivityIndicator size={12} color="rgba(255,255,255,0.8)" style={{ marginLeft: 4 }} />
+                  ) : (
+                    <Text style={styles.locationBadgeText}>
+                      {userPlace
+                        ? [userPlace.city, userPlace.country].filter(Boolean).join(', ')
+                        : 'Détecter ma position'}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+
                 <Text style={styles.heroTitle}>
                   Trouvez votre{'\n'}
                   <Text style={styles.heroTitleHighlight}>logement idéal</Text>
                 </Text>
-                
+
                 <Text style={styles.heroSubtitle}>
                   Découvrez des studios, appartements et maisons à louer
                 </Text>
-                
-                <TouchableOpacity 
+
+                <TouchableOpacity
                   style={styles.searchBar}
                   onPress={() => navigation.navigate('Explore')}
                 >
                   <Ionicons name="search-outline" size={20} color="#999" />
-                  <Text style={styles.searchPlaceholder}>Rechercher une propriété...</Text>
+                  <Text style={styles.searchPlaceholder}>
+                    {userPlace?.city
+                      ? `Rechercher à ${userPlace.city}...`
+                      : 'Rechercher une propriété...'}
+                  </Text>
                   <View style={styles.searchButton}>
                     <Ionicons name="options-outline" size={20} color="#fff" />
                   </View>
@@ -174,7 +231,7 @@ export default function HomeScreen() {
           </ImageBackground>
         </View>
 
-        {/* ── Categories Section ── */}
+        {/* â”€â”€ Categories Section â”€â”€ */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View>
@@ -219,7 +276,7 @@ export default function HomeScreen() {
           </ScrollView>
         </View>
 
-        {/* ── Featured Properties ── */}
+        {/* â”€â”€ Featured Properties â”€â”€ */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View>
@@ -277,269 +334,71 @@ export default function HomeScreen() {
         onSignUp={() => { setShowGuestModal(false); navigation.navigate('Register'); }}
         onSignIn={() => { setShowGuestModal(false); navigation.navigate('Login'); }}
       />
+
+      {/* Property Alert Notifications Modal */}
+      <Modal
+        visible={notifModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setNotifModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.notifOverlay}
+          activeOpacity={1}
+          onPress={() => setNotifModalVisible(false)}
+        >
+          <View style={styles.notifSheet}>
+            <View style={styles.notifHandle} />
+            <Text style={styles.notifTitle}>Nouvelles propriétés</Text>
+            {notifications.length === 0 ? (
+              <View style={styles.notifEmpty}>
+                <Ionicons name="notifications-off-outline" size={40} color="#ccc" />
+                <Text style={styles.notifEmptyText}>Aucune notification pour l'instant</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={notifications}
+                keyExtractor={(n: PropertyNotification) => n.id}
+                renderItem={({ item }: { item: PropertyNotification }) => (
+                  <TouchableOpacity
+                    style={styles.notifItem}
+                    onPress={() => {
+                      setNotifModalVisible(false);
+                      navigation.navigate('PropertyDetail', { id: item.property_id });
+                    }}
+                  >
+                    <View style={styles.notifItemIcon}>
+                      <Ionicons name="home-outline" size={22} color={COLORS.primary} />
+                    </View>
+                    <View style={styles.notifItemInfo}>
+                      <Text style={styles.notifItemTitle}>{item.title}</Text>
+                      <Text style={styles.notifItemSub}>
+                        {item.property_type} · {item.neighborhood} · {item.transaction_type}
+                      </Text>
+                      <Text style={styles.notifItemPrice}>
+                        {formatCurrency(item.price, item.currency)}
+                        {item.transaction_type === 'À louer' ? '/mois' : ''}
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color="#ccc" />
+                  </TouchableOpacity>
+                )}
+              />
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Snackbar
+        visible={snackVisible}
+        onDismiss={() => setSnackVisible(false)}
+        duration={4000}
+        style={styles.snackbar}
+        action={{ label: 'OK', onPress: () => setSnackVisible(false) }}
+      >
+        Propriété ajoutée avec succès !
+      </Snackbar>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-  },
-  container: { 
-    flex: 1, 
-    backgroundColor: '#f8f9fa',
-  },
-  content: { 
-    paddingTop: 0,
-  },
-
-  // ── Custom Header with Logo ──
-  header: {
-    backgroundColor: COLORS.primary,
-    paddingTop: 12,
-    paddingBottom: 16,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  logo: {
-    fontSize: 24,
-    fontWeight: '800',
-    fontFamily: 'Poppins-Bold',
-    color: '#fff',
-    letterSpacing: 0.5,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  headerIconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addPropertyBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarLink: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    overflow: 'hidden',
-  },
-  loginBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#fff',
-    borderRadius: 20,
-  },
-  loginBtnText: {
-    color: COLORS.primary,
-    fontWeight: '600',
-    fontSize: 14,
-    fontFamily: 'Poppins-SemiBold',
-  },
-
-  // ── Modern Hero Section ──
-  heroSection: {
-    marginHorizontal: 16,
-    marginTop: 20,
-    borderRadius: 20,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  heroBg: { width: '100%', height: height * 0.4 },
-  heroOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  heroContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 32,
-  },
-  heroTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#fff',
-    marginBottom: 12,
-    lineHeight: 38,
-    fontFamily: 'Poppins-Bold',
-  },
-  heroTitleHighlight: {
-    color: '#fff', // Changed from COLORS.primary to white for better legibility
-  },
-  heroSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.85)',
-    marginBottom: 24,
-    lineHeight: 20,
-    fontFamily: 'Poppins-Regular',
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 50,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  searchPlaceholder: {
-    flex: 1,
-    color: '#999',
-    fontSize: 14,
-    fontFamily: 'Poppins-Regular',
-  },
-  searchButton: {
-    backgroundColor: COLORS.primary,
-    padding: 6,
-    borderRadius: 50,
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // ── Sections ──
-  section: { 
-    paddingHorizontal: 20, 
-    marginBottom: 28,
-    marginTop: 8,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: 16,
-  },
-  sectionSubtitle: {
-    fontSize: 12,
-    color: COLORS.primary,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 4,
-    fontFamily: 'Poppins-SemiBold',
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#111',
-    fontFamily: 'Poppins-Bold',
-  },
-  viewAllBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  viewAllText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: COLORS.primary,
-    fontFamily: 'Poppins-Medium',
-  },
-
-  // ── Modern Category Cards ──
-  categoriesContainer: {
-    gap: 12,
-  },
-  catCard: {
-    width: width * 0.3,
-    height: width * 0.4,
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  catImage: {
-    width: '100%',
-    height: '100%',
-  },
-  catOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 10,
-    justifyContent: 'flex-end',
-  },
-  catLabel: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '600',
-    marginTop: 6,
-    fontFamily: 'Poppins-SemiBold',
-  },
-
-  // ── Empty State ──
-  loader: { marginVertical: 40 },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 40,
-    paddingHorizontal: 24,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-  },
-  emptyIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#f0f0f0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-    textAlign: 'center',
-    fontFamily: 'Poppins-SemiBold',
-  },
-  emptyText: {
-    fontSize: 13,
-    color: '#999',
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 18,
-    fontFamily: 'Poppins-Regular',
-  },
-  emptyBtn: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 50,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-  },
-  emptyBtnText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 13,
-    fontFamily: 'Poppins-SemiBold',
-  },
-});

@@ -30,7 +30,22 @@
     },
     "plugins": [
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Gidana utilise votre position pour afficher les propriétés proches de vous.",
+          "locationWhenInUsePermission": "Gidana utilise votre position pour afficher les propriétés proches de vous."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-chrome-512x512.png",
+          "color": "#1B4F72",
+          "defaultChannel": "messages"
+        }
+      ]
     ],
     "newArchEnabled": false
   }
