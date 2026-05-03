@@ -4,6 +4,7 @@ import { FlatList, RefreshControl, TouchableOpacity, View } from 'react-native';
 import styles from './TransactionsScreen.styles';
 import { ActivityIndicator, Text } from 'react-native-paper';
 import TransactionItem from '../../components/TransactionItem';
+import { useTranslation } from 'react-i18next';
 import { transactionApi } from '../../api/transactions';
 import { Transaction } from '../../types';
 import { COLORS } from '../../utils/theme';
@@ -11,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 export default function TransactionsScreen() {
   const navigation = useNavigation<any>();
+  const { t } = useTranslation();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -62,7 +64,7 @@ export default function TransactionsScreen() {
         onEndReachedThreshold={0.4}
         ListHeaderComponent={
           <View style={styles.header}>
-            <Text variant="titleLarge" style={styles.headerTitle}>Historique</Text>
+            <Text variant="titleLarge" style={styles.headerTitle}>{t('transactions.title')}</Text>
             <TouchableOpacity onPress={() => navigation.navigate('PayService')}>
               <Ionicons name="add-circle" size={30} color={COLORS.primary} />
             </TouchableOpacity>
@@ -74,7 +76,7 @@ export default function TransactionsScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="receipt-outline" size={64} color={COLORS.border} />
-            <Text style={styles.emptyText}>Aucune transaction</Text>
+            <Text style={styles.emptyText}>{t('transactions.noTransactions')}</Text>
           </View>
         }
       />

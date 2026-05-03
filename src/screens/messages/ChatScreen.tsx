@@ -13,6 +13,7 @@ import {
 import styles from './ChatScreen.styles';
 import { ActivityIndicator, Avatar, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { messagingApi } from '../../api/messaging';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useAuthStore } from '../../store/authStore';
@@ -23,6 +24,7 @@ export default function ChatScreen() {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
   const { conversationId, name } = route.params as { conversationId: number; name: string };
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
 
   const [messages, setMessages] = useState<Message[]>([]);
@@ -74,24 +76,24 @@ export default function ChatScreen() {
       });
     } catch (e) {
       setText(content);
-      Alert.alert('Erreur', 'Impossible d\'envoyer le message');
+      Alert.alert(t('common.error'), t('chat.sendError'));
     } finally {
       setSending(false);
     }
   }
 
   async function handleDeleteMessage(msgId: number) {
-    Alert.alert('Supprimer', 'Supprimer ce message ?', [
-      { text: 'Annuler', style: 'cancel' },
+    Alert.alert(t('chat.deleteTitle'), t('chat.deleteConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Supprimer',
+        text: t('chat.deleteTitle'),
         style: 'destructive',
         onPress: async () => {
           try {
             await messagingApi.deleteMessage(conversationId, msgId);
             setMessages((prev) => prev.filter((m) => m.id !== msgId));
           } catch {
-            Alert.alert('Erreur', 'Impossible de supprimer le message');
+            Alert.alert(t('common.error'), t('chat.deleteError'));
           }
         },
       },
@@ -139,7 +141,7 @@ export default function ChatScreen() {
           )}
           ListEmptyComponent={
             <View style={styles.emptyChat}>
-              <Text style={styles.emptyChatText}>Démarrez la conversation !</Text>
+              <Text style={styles.emptyChatText}>{t('chat.startConversation')}</Text>
             </View>
           }
         />
@@ -153,7 +155,7 @@ export default function ChatScreen() {
         <View style={styles.inputRow}>
           <TextInput
             style={styles.input}
-            placeholder="Votre message..."
+            placeholder={t('chat.messagePlaceholder')}
             placeholderTextColor="#aaa"
             value={text}
             onChangeText={setText}

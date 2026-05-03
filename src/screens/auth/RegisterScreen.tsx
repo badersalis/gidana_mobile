@@ -1,8 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import React, { useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
-import { Button, HelperText, SegmentedButtons, Text, TextInput } from 'react-native-paper';
+import {
+  KeyboardAvoidingView,
+  Linking,
+  Modal,
+  Platform,
+  ScrollView,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { Button, Divider, HelperText, SegmentedButtons, Text, TextInput } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../store/authStore';
 import { COLORS } from '../../utils/theme';
 import styles from './RegisterScreen.styles';
@@ -15,47 +24,10 @@ function isValidPhone(v: string) {
   return /^\+[1-9]\d{6,14}$/.test(v);
 }
 
-function validate(
-  firstName: string,
-  lastName: string,
-  identifierType: 'email' | 'phone',
-  identifier: string,
-  password: string,
-): Record<string, string> {
-  const errors: Record<string, string> = {};
-
-  if (!firstName.trim()) {
-    errors.firstName = 'Ce champ est obligatoire';
-  } else if (firstName.trim().length < 2) {
-    errors.firstName = 'Minimum 2 caractères';
-  }
-
-  if (!lastName.trim()) {
-    errors.lastName = 'Ce champ est obligatoire';
-  } else if (lastName.trim().length < 2) {
-    errors.lastName = 'Minimum 2 caractères';
-  }
-
-  if (!identifier.trim()) {
-    errors.identifier = 'Ce champ est obligatoire';
-  } else if (identifierType === 'email' && !isValidEmail(identifier.trim())) {
-    errors.identifier = 'Adresse email invalide';
-  } else if (identifierType === 'phone' && !isValidPhone(identifier.trim())) {
-    errors.identifier = 'Format invalide. Exemple: +221771234567';
-  }
-
-  if (!password) {
-    errors.password = 'Ce champ est obligatoire';
-  } else if (password.length < 6) {
-    errors.password = 'Minimum 6 caractères';
-  }
-
-  return errors;
-}
-
 export default function RegisterScreen() {
   const navigation = useNavigation<any>();
   const register = useAuthStore((s) => s.register);
+  const { t } = useTranslation();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [identifierType, setIdentifierType] = useState<'email' | 'phone'>('email');
@@ -65,10 +37,44 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [serverError, setServerError] = useState('');
+  const [showPrivacy, setShowPrivacy] = useState(false);
+
+  function validate(
+    firstName: string,
+    lastName: string,
+    identifierType: 'email' | 'phone',
+    identifier: string,
+    password: string,
+  ): Record<string, string> {
+    const errors: Record<string, string> = {};
+    if (!firstName.trim()) {
+      errors.firstName = t('common.required');
+    } else if (firstName.trim().length < 2) {
+      errors.firstName = t('common.min2Chars');
+    }
+    if (!lastName.trim()) {
+      errors.lastName = t('common.required');
+    } else if (lastName.trim().length < 2) {
+      errors.lastName = t('common.min2Chars');
+    }
+    if (!identifier.trim()) {
+      errors.identifier = t('common.required');
+    } else if (identifierType === 'email' && !isValidEmail(identifier.trim())) {
+      errors.identifier = t('auth.invalidEmail');
+    } else if (identifierType === 'phone' && !isValidPhone(identifier.trim())) {
+      errors.identifier = t('auth.invalidPhone');
+    }
+    if (!password) {
+      errors.password = t('common.required');
+    } else if (password.length < 6) {
+      errors.password = t('common.min6Chars');
+    }
+    return errors;
+  }
 
   const formErrors = useMemo(
     () => validate(firstName, lastName, identifierType, identifier, password),
-    [firstName, lastName, identifierType, identifier, password],
+    [firstName, lastName, identifierType, identifier, password, t],
   );
   const isValid = Object.keys(formErrors).length === 0;
 
@@ -100,7 +106,7 @@ export default function RegisterScreen() {
         password,
       });
     } catch (e: any) {
-      setServerError(e.response?.data?.error ?? "Erreur lors de l'inscription");
+      setServerError(e.response?.data?.error ?? t('auth.registerError'));
     } finally {
       setLoading(false);
     }
@@ -113,15 +119,15 @@ export default function RegisterScreen() {
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
 
-        <Text style={styles.title}>Créer un compte</Text>
-        <Text style={styles.subtitle}>Rejoignez Gidana pour trouver votre logement idéal</Text>
+        <Text style={styles.title}>{t('auth.createAccount')}</Text>
+        <Text style={styles.subtitle}>{t('auth.joinGidana')}</Text>
 
         <View style={styles.form}>
           <View style={styles.row}>
             <View style={styles.halfField}>
               <TextInput
                 mode="outlined"
-                label="Prénom"
+                label={t('auth.firstName')}
                 value={firstName}
                 onChangeText={(v) => { setFirstName(v); setServerError(''); }}
                 onBlur={() => touch('firstName')}
@@ -137,7 +143,7 @@ export default function RegisterScreen() {
             <View style={styles.halfField}>
               <TextInput
                 mode="outlined"
-                label="Nom"
+                label={t('auth.lastName')}
                 value={lastName}
                 onChangeText={(v) => { setLastName(v); setServerError(''); }}
                 onBlur={() => touch('lastName')}
@@ -156,8 +162,8 @@ export default function RegisterScreen() {
             value={identifierType}
             onValueChange={handleTypeChange}
             buttons={[
-              { value: 'email', label: 'Email', style: { borderRadius: 12 } },
-              { value: 'phone', label: 'Téléphone', style: { borderRadius: 12 } },
+              { value: 'email', label: t('auth.email'), style: { borderRadius: 12 } },
+              { value: 'phone', label: t('auth.phone'), style: { borderRadius: 12 } },
             ]}
             style={styles.segmented}
             theme={{ colors: { primary: COLORS.primary } }}
@@ -166,7 +172,7 @@ export default function RegisterScreen() {
           <View>
             <TextInput
               mode="outlined"
-              label={identifierType === 'email' ? 'Adresse email' : 'Téléphone (+221XXXXXXXXX)'}
+              label={identifierType === 'email' ? t('auth.emailAddress') : t('auth.phoneInput')}
               value={identifier}
               onChangeText={(v) => { setIdentifier(v); setServerError(''); }}
               onBlur={() => touch('identifier')}
@@ -186,7 +192,7 @@ export default function RegisterScreen() {
           <View>
             <TextInput
               mode="outlined"
-              label="Mot de passe (min. 6 caractères)"
+              label={t('auth.passwordMin')}
               value={password}
               onChangeText={(v) => { setPassword(v); setServerError(''); }}
               onBlur={() => touch('password')}
@@ -223,18 +229,79 @@ export default function RegisterScreen() {
             contentStyle={styles.buttonContent}
             buttonColor={COLORS.primary}
           >
-            S'inscrire
+            {t('auth.signUp')}
           </Button>
 
           <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.loginLink}>
             <Text style={styles.loginText}>
-              Déjà un compte ?{' '}
-              <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Se connecter</Text>
+              {t('auth.alreadyAccount')}{' '}
+              <Text style={{ color: COLORS.primary, fontWeight: '700' }}>{t('auth.signIn')}</Text>
             </Text>
           </TouchableOpacity>
+
+          <Text style={styles.privacyConsent}>
+            {t('auth.privacyConsent')}{' '}
+            <Text style={styles.privacyLink} onPress={() => setShowPrivacy(true)}>
+              {t('auth.privacyPolicy')}
+            </Text>{' '}
+            {t('auth.of')}{' '}
+            <Text style={{ fontFamily: 'Poppins-SemiBold', color: COLORS.textLight }}>
+              Gidana Plateforms SARL
+            </Text>
+          </Text>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={showPrivacy}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowPrivacy(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('auth.privacy.title')}</Text>
+              <TouchableOpacity onPress={() => setShowPrivacy(false)}>
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            <Divider />
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              <Text style={styles.policySectionTitle}>{t('auth.privacy.section1Title')}</Text>
+              <Text style={styles.policyText}>{t('auth.privacy.section1')}</Text>
+
+              <Text style={styles.policySectionTitle}>{t('auth.privacy.section2Title')}</Text>
+              <Text style={styles.policyText}>{t('auth.privacy.section2')}</Text>
+
+              <Text style={styles.policySectionTitle}>{t('auth.privacy.section3Title')}</Text>
+              <Text style={styles.policyText}>{t('auth.privacy.section3')}</Text>
+
+              <Text style={styles.policySectionTitle}>{t('auth.privacy.section4Title')}</Text>
+              <Text style={styles.policyText}>{t('auth.privacy.section4')}</Text>
+
+              <Text style={styles.policySectionTitle}>{t('auth.privacy.section5Title')}</Text>
+              <Text style={styles.policyText}>
+                {t('auth.privacy.section5')}{' '}
+                <Text
+                  style={{ color: COLORS.primary }}
+                  onPress={() => Linking.openURL('mailto:support@gidana.app')}
+                >
+                  support@gidana.app
+                </Text>
+              </Text>
+
+              <Text style={styles.policySectionTitle}>{t('auth.privacy.section6Title')}</Text>
+              <Text style={styles.policyText}>{t('auth.privacy.section6')}</Text>
+
+              <View style={styles.policyFooter}>
+                <Text style={styles.policyFooterText}>{t('auth.privacy.footer')}</Text>
+                <Text style={styles.policyFooterSub}>{t('auth.privacy.allRights')}</Text>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
-

@@ -11,6 +11,7 @@ import {
 import styles from './MyPropertiesScreen.styles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityIndicator, Chip, Text } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import { propertyApi } from '../../api/properties';
 import { Property } from '../../types';
 import { formatCurrency } from '../../utils/currency';
@@ -18,6 +19,7 @@ import { COLORS } from '../../utils/theme';
 
 export default function MyPropertiesScreen() {
   const navigation = useNavigation<any>();
+  const { t } = useTranslation();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [togglingId, setTogglingId] = useState<number | null>(null);
@@ -34,7 +36,7 @@ export default function MyPropertiesScreen() {
       const { data } = await propertyApi.myListings();
       setProperties(data.data);
     } catch {
-      Alert.alert('Erreur', 'Impossible de charger vos annonces');
+      Alert.alert(t('common.error'), t('myProperties.loadError'));
     } finally {
       setLoading(false);
     }
@@ -42,19 +44,19 @@ export default function MyPropertiesScreen() {
 
   async function handleDelete(id: number) {
     Alert.alert(
-      'Supprimer l\'annonce',
-      'Cette action est irréversible. Voulez-vous vraiment supprimer cette propriété ?',
+      t('myProperties.deleteTitle'),
+      t('myProperties.deleteConfirm'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: t('myProperties.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               await propertyApi.delete(id);
               setProperties((prev) => prev.filter((p) => p.id !== id));
             } catch (e: any) {
-              Alert.alert('Erreur', e.response?.data?.error ?? 'Impossible de supprimer l\'annonce');
+              Alert.alert(t('common.error'), e.response?.data?.error ?? t('myProperties.deleteError'));
             }
           },
         },
@@ -70,7 +72,7 @@ export default function MyPropertiesScreen() {
         prev.map((p) => p.id === item.id ? { ...p, is_available: !p.is_available } : p)
       );
     } catch (e: any) {
-      Alert.alert('Erreur', e.response?.data?.error ?? 'Impossible de modifier la disponibilité');
+      Alert.alert(t('common.error'), e.response?.data?.error ?? t('myProperties.toggleError'));
     } finally {
       setTogglingId(null);
     }
@@ -114,12 +116,14 @@ export default function MyPropertiesScreen() {
                 style={[styles.statusChip, item.is_available ? styles.availableChip : styles.unavailableChip]}
               >
                 <Text style={styles.chipText}>
-                  {isToggling ? '...' : item.is_available ? 'Disponible' : 'Indisponible'}
+                  {isToggling ? '...' : item.is_available ? t('myProperties.available') : t('myProperties.unavailable')}
                 </Text>
               </Chip>
             </TouchableOpacity>
             <Chip compact style={styles.typeChip}>
-              <Text style={styles.typeChipText}>{item.transaction_type}</Text>
+              <Text style={styles.typeChipText}>
+                {item.transaction_type === 'for_rent' ? t('explore.forRent') : t('explore.forSale')}
+              </Text>
             </Chip>
           </View>
 
@@ -130,7 +134,7 @@ export default function MyPropertiesScreen() {
               activeOpacity={0.7}
             >
               <Ionicons name="pencil-outline" size={15} color={COLORS.primary} />
-              <Text style={styles.editBtnText}>Modifier</Text>
+              <Text style={styles.editBtnText}>{t('myProperties.edit')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -139,7 +143,7 @@ export default function MyPropertiesScreen() {
               activeOpacity={0.7}
             >
               <Ionicons name="trash-outline" size={15} color="#ef4444" />
-              <Text style={styles.deleteBtnText}>Supprimer</Text>
+              <Text style={styles.deleteBtnText}>{t('myProperties.delete')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -153,7 +157,7 @@ export default function MyPropertiesScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mes annonces</Text>
+        <Text style={styles.headerTitle}>{t('myProperties.title')}</Text>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => navigation.navigate('AddProperty')}
@@ -170,15 +174,15 @@ export default function MyPropertiesScreen() {
       ) : properties.length === 0 ? (
         <View style={styles.centered}>
           <Ionicons name="home-outline" size={64} color={COLORS.textLight} />
-          <Text style={styles.emptyTitle}>Aucune annonce</Text>
-          <Text style={styles.emptySubtitle}>Publiez votre première propriété</Text>
+          <Text style={styles.emptyTitle}>{t('myProperties.noListings')}</Text>
+          <Text style={styles.emptySubtitle}>{t('myProperties.noListingsDesc')}</Text>
           <TouchableOpacity
             style={styles.createBtn}
             onPress={() => navigation.navigate('AddProperty')}
             activeOpacity={0.8}
           >
             <Ionicons name="add" size={18} color="#fff" />
-            <Text style={styles.createBtnText}>Publier une annonce</Text>
+            <Text style={styles.createBtnText}>{t('myProperties.createListing')}</Text>
           </TouchableOpacity>
         </View>
       ) : (

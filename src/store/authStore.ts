@@ -3,6 +3,8 @@ import { authApi } from '../api/auth';
 import { User } from '../types';
 import { storage } from '../utils/storage';
 
+const SESSION_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days
+
 interface AuthState {
   user: User | null;
   token: string | null;
@@ -30,12 +32,20 @@ export const useAuthStore = create<AuthState>((set) => ({
   loadStoredAuth: async () => {
     try {
       const token = await storage.getItemAsync('auth_token');
+      const loginAtStr = await storage.getItemAsync('auth_login_at');
+
       if (token) {
-        const { data } = await authApi.getMe();
-        set({ user: data.data, token, isAuthenticated: true });
+        if (loginAtStr && Date.now() - parseInt(loginAtStr, 10) > SESSION_MAX_AGE) {
+          await storage.deleteItemAsync('auth_token');
+          await storage.deleteItemAsync('auth_login_at');
+        } else {
+          const { data } = await authApi.getMe();
+          set({ user: data.data, token, isAuthenticated: true });
+        }
       }
     } catch {
       await storage.deleteItemAsync('auth_token');
+      await storage.deleteItemAsync('auth_login_at');
     } finally {
       set({ isLoading: false });
     }
@@ -44,17 +54,20 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (identifier, password) => {
     const { data } = await authApi.login(identifier, password);
     await storage.setItemAsync('auth_token', data.data.token);
+    await storage.setItemAsync('auth_login_at', String(Date.now()));
     set({ user: data.data.user, token: data.data.token, isAuthenticated: true });
   },
 
   register: async (userData) => {
     const { data } = await authApi.register(userData);
     await storage.setItemAsync('auth_token', data.data.token);
+    await storage.setItemAsync('auth_login_at', String(Date.now()));
     set({ user: data.data.user, token: data.data.token, isAuthenticated: true });
   },
 
   logout: async () => {
     await storage.deleteItemAsync('auth_token');
+    await storage.deleteItemAsync('auth_login_at');
     set({ user: null, token: null, isAuthenticated: false });
   },
 

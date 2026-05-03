@@ -5,6 +5,7 @@ import { Alert, FlatList, RefreshControl, View } from 'react-native';
 import styles from './WalletScreen.styles';
 import { ActivityIndicator, Button, FAB, Text } from 'react-native-paper';
 import WalletCard from '../../components/WalletCard';
+import { useTranslation } from 'react-i18next';
 import { walletApi } from '../../api/wallet';
 import { useAuthStore } from '../../store/authStore';
 import { Wallet } from '../../types';
@@ -12,6 +13,7 @@ import { COLORS } from '../../utils/theme';
 
 export default function WalletScreen() {
   const navigation = useNavigation<any>();
+  const { t } = useTranslation();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,12 +46,12 @@ export default function WalletScreen() {
 
   async function handleDelete(id: number) {
     Alert.alert(
-      'Supprimer le portefeuille',
-      'Êtes-vous sûr de vouloir supprimer ce portefeuille ?',
+      t('wallet.deleteTitle'),
+      t('wallet.deleteConfirm'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Supprimer', style: 'destructive',
+          text: t('wallet.delete'), style: 'destructive',
           onPress: async () => {
             await walletApi.delete(id);
             setWallets((prev) => prev.filter((w) => w.id !== id));
@@ -72,13 +74,13 @@ export default function WalletScreen() {
     return (
       <View style={styles.authPrompt}>
         <Ionicons name="wallet-outline" size={64} color={COLORS.border} />
-        <Text style={styles.authTitle}>Connectez-vous pour accéder à votre portefeuille</Text>
-        <Text style={styles.authSub}>Gérez vos moyens de paiement et transactions</Text>
+        <Text style={styles.authTitle}>{t('wallet.loginPrompt')}</Text>
+        <Text style={styles.authSub}>{t('wallet.loginPromptDesc')}</Text>
         <Button mode="contained" onPress={() => navigation.navigate('Login')} style={styles.authBtn}>
-          Se connecter
+          {t('wallet.signIn')}
         </Button>
         <Button mode="outlined" onPress={() => navigation.navigate('Register')} style={styles.regBtn} textColor={COLORS.primary}>
-          Créer un compte
+          {t('wallet.createAccount')}
         </Button>
       </View>
     );
@@ -103,13 +105,13 @@ export default function WalletScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="wallet-outline" size={64} color={COLORS.border} />
-            <Text style={styles.emptyText}>Aucun portefeuille</Text>
-            <Text style={styles.emptySubtext}>Ajoutez un moyen de paiement pour commencer</Text>
+            <Text style={styles.emptyText}>{t('wallet.noWallets')}</Text>
+            <Text style={styles.emptySubtext}>{t('wallet.noWalletsDesc')}</Text>
           </View>
         }
         ListHeaderComponent={
           <View style={styles.header}>
-            <Text variant="titleLarge" style={styles.headerTitle}>Mes portefeuilles</Text>
+            <Text variant="titleLarge" style={styles.headerTitle}>{t('wallet.title')}</Text>
           </View>
         }
       />

@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import React from 'react';
-import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Card, Text } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '../utils/currency';
 import { COLORS } from '../utils/theme';
 import { Property } from '../types';
@@ -13,32 +15,40 @@ interface Props {
 }
 
 export default function PropertyCard({ property, onPress, onFavoriteToggle }: Props) {
+  const { t } = useTranslation();
   const mainImage = property.images?.find((i) => i.is_main) ?? property.images?.[0];
+  const isRent = property.transaction_type === 'for_rent';
 
   return (
     <Card style={styles.card} elevation={2}>
       <View style={styles.imageContainer}>
         {mainImage ? (
-          <Image source={{ uri: mainImage.filename }} style={styles.image} resizeMode="cover" />
+          <Image
+            source={{ uri: mainImage.filename }}
+            style={styles.image}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={200}
+          />
         ) : (
           <View style={[styles.image, styles.imagePlaceholder]}>
             <Ionicons name="home-outline" size={40} color={COLORS.textLight} />
           </View>
         )}
 
-        {/* Transaction badge top-left */}
         <View style={styles.badgeRow}>
-          <View style={[styles.badge, property.transaction_type === 'À louer' ? styles.rentBadge : styles.saleBadge]}>
-            <Text style={styles.badgeText}>{property.transaction_type?.toUpperCase()}</Text>
+          <View style={[styles.badge, isRent ? styles.rentBadge : styles.saleBadge]}>
+            <Text style={styles.badgeText}>
+              {isRent ? t('explore.forRent').toUpperCase() : t('explore.forSale').toUpperCase()}
+            </Text>
           </View>
           {!property.is_available && (
             <View style={[styles.badge, styles.unavailableBadge]}>
-              <Text style={styles.badgeText}>INDISPONIBLE</Text>
+              <Text style={styles.badgeText}>{t('propertyDetail.unavailable').toUpperCase()}</Text>
             </View>
           )}
         </View>
 
-        {/* Favorite button top-right */}
         {onFavoriteToggle && (
           <TouchableOpacity style={styles.favoriteBtn} onPress={onFavoriteToggle} activeOpacity={0.8}>
             <Ionicons
@@ -60,13 +70,12 @@ export default function PropertyCard({ property, onPress, onFavoriteToggle }: Pr
           </Text>
         </View>
 
-        {/* Property details grid */}
         <View style={styles.details}>
           {property.rooms ? (
             <View style={styles.detailItem}>
               <Ionicons name="albums-outline" size={13} color={COLORS.textLight} />
               <Text style={styles.detailText}>
-                {property.rooms} {property.rooms === 1 ? 'chambre' : 'chambres'}
+                {property.rooms} {t(property.rooms === 1 ? 'propertyCard.room' : 'propertyCard.rooms')}
               </Text>
             </View>
           ) : null}
@@ -74,7 +83,7 @@ export default function PropertyCard({ property, onPress, onFavoriteToggle }: Pr
             <View style={styles.detailItem}>
               <Ionicons name="water-outline" size={13} color={COLORS.textLight} />
               <Text style={styles.detailText}>
-                {property.bathrooms} {property.bathrooms === 1 ? 'salle de bain' : 'salles de bains'}
+                {property.bathrooms} {t(property.bathrooms === 1 ? 'propertyCard.bathroom' : 'propertyCard.bathrooms')}
               </Text>
             </View>
           ) : null}
@@ -86,24 +95,19 @@ export default function PropertyCard({ property, onPress, onFavoriteToggle }: Pr
           ) : null}
         </View>
 
-        {/* Price row + Voir button */}
         <View style={styles.priceRow}>
           <View style={styles.priceLeft}>
             <Text style={styles.price}>{formatCurrency(property.price, property.currency)}</Text>
-            {property.transaction_type === 'À louer' && (
-              <Text style={styles.perMonth}>/mois</Text>
-            )}
+            {isRent && <Text style={styles.perMonth}>{t('home.perMonth')}</Text>}
             {property.review_count > 0 && (
               <View style={styles.ratingRow}>
                 <Ionicons name="star" size={12} color={COLORS.accent} />
-                <Text style={styles.rating}>
-                  {property.average_rating.toFixed(1)}
-                </Text>
+                <Text style={styles.rating}>{property.average_rating.toFixed(1)}</Text>
               </View>
             )}
           </View>
           <TouchableOpacity style={styles.voirBtn} onPress={onPress} activeOpacity={0.8}>
-            <Text style={styles.voirBtnText}>Voir</Text>
+            <Text style={styles.voirBtnText}>{t('propertyCard.view')}</Text>
           </TouchableOpacity>
         </View>
       </Card.Content>
@@ -117,9 +121,14 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     borderRadius: 12,
     backgroundColor: COLORS.card,
-    overflow: 'hidden',
   },
-  imageContainer: { position: 'relative' },
+  imageContainer: {
+    position: 'relative',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: COLORS.border,
+  },
   image: { width: '100%', height: 200 },
   imagePlaceholder: {
     backgroundColor: COLORS.border,

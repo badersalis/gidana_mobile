@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,14 +11,13 @@ import {
   Share,
   TouchableOpacity,
   View,
-  Image,
   Modal,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
 import styles from './PropertyDetailScreen.styles';
 import { ActivityIndicator, Button, Chip, Divider, Text, TextInput } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import StarRating from '../../components/StarRating';
 import { favoritesApi } from '../../api/favorites';
 import { messagingApi } from '../../api/messaging';
@@ -27,13 +27,14 @@ import { Property } from '../../types';
 import { formatCurrency, formatDate } from '../../utils/currency';
 import { COLORS } from '../../utils/theme';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 export default function PropertyDetailScreen() {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
   const { id } = route.params;
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,17 +58,14 @@ export default function PropertyDetailScreen() {
       setProperty(data.data);
     } catch (error) {
       console.error('Error loading property:', error);
-      Alert.alert('Erreur', 'Impossible de charger les détails de la propriété');
+      Alert.alert(t('common.error'), t('propertyDetail.propertyError'));
     } finally {
       setLoading(false);
     }
   }
 
   async function handleToggleFavorite() {
-    if (!user) {
-      navigation.navigate('Login');
-      return;
-    }
+    if (!user) { navigation.navigate('Login'); return; }
     if (!property) return;
     try {
       await favoritesApi.toggle(property.id);
@@ -78,23 +76,24 @@ export default function PropertyDetailScreen() {
   }
 
   const isOwner = user?.id === property?.owner_id;
+  const ownerUser = property?.user ?? property?.owner;
 
   async function handleDeleteProperty() {
     if (!property) return;
     Alert.alert(
-      'Supprimer l\'annonce',
-      'Cette action est irréversible. Voulez-vous vraiment supprimer cette propriété ?',
+      t('propertyDetail.deleteProperty'),
+      t('propertyDetail.deleteConfirm'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: t('propertyDetail.deleteProperty'),
           style: 'destructive',
           onPress: async () => {
             try {
               await propertyApi.delete(property.id);
               navigation.goBack();
             } catch (e: any) {
-              Alert.alert('Erreur', e.response?.data?.error ?? 'Impossible de supprimer l\'annonce');
+              Alert.alert(t('common.error'), e.response?.data?.error ?? t('propertyDetail.deleteError'));
             }
           },
         },
@@ -103,12 +102,9 @@ export default function PropertyDetailScreen() {
   }
 
   async function handleSubmitReview() {
-    if (!user) {
-      navigation.navigate('Login');
-      return;
-    }
+    if (!user) { navigation.navigate('Login'); return; }
     if (reviewRating === 0) {
-      Alert.alert('Erreur', 'Veuillez sélectionner une note');
+      Alert.alert(t('common.error'), t('propertyDetail.ratingRequired'));
       return;
     }
     try {
@@ -116,27 +112,24 @@ export default function PropertyDetailScreen() {
       await loadProperty();
       setReviewRating(0);
       setReviewComment('');
-      Alert.alert('Avis publié', 'Merci pour votre retour !');
+      Alert.alert(t('propertyDetail.reviewPublished'), t('propertyDetail.reviewPublishedDesc'));
     } catch (e: any) {
-      Alert.alert('Erreur', e.response?.data?.error ?? 'Erreur lors de l\'ajout de l\'avis');
+      Alert.alert(t('common.error'), e.response?.data?.error ?? t('propertyDetail.reviewError'));
     }
   }
 
   async function handleStartConversation() {
-    if (!user) {
-      navigation.navigate('Login');
-      return;
-    }
+    if (!user) { navigation.navigate('Login'); return; }
     if (!property) return;
     setContactingOwner(true);
     try {
       const { data } = await messagingApi.startConversation(property.id);
       const conv = data.data;
       const ownerName =
-        `${property.user?.first_name ?? ''} ${property.user?.last_name ?? ''}`.trim() || 'Propriétaire';
+        `${property.user?.first_name ?? ''} ${property.user?.last_name ?? ''}`.trim() || t('propertyDetail.owner');
       navigation.navigate('Chat', { conversationId: conv.id, name: ownerName });
     } catch (e: any) {
-      Alert.alert('Erreur', e.response?.data?.error ?? 'Impossible de démarrer la conversation');
+      Alert.alert(t('common.error'), e.response?.data?.error ?? t('propertyDetail.conversationError'));
     } finally {
       setContactingOwner(false);
     }
@@ -148,7 +141,7 @@ export default function PropertyDetailScreen() {
   }
 
   function getMemberSinceYear(): string {
-    const raw = property?.user?.member_since ?? property?.user?.created_at;
+    const raw = ownerUser?.member_since ?? ownerUser?.created_at;
     if (!raw) return new Date().getFullYear().toString();
     try {
       const date = new Date(raw);
@@ -160,101 +153,53 @@ export default function PropertyDetailScreen() {
   function buildShareText() {
     if (!property) return '';
     const priceStr = formatCurrency(property.price, property.currency);
-    const rental = property.transaction_type === 'À louer';
+    const rental = property.transaction_type === 'for_rent';
     let msg = `*${property.title}*\n`;
-    msg += `Quartier : ${property.neighborhood}, ${property.country}\n`;
-    msg += `Type : ${property.property_type} – ${property.transaction_type}\n`;
-    msg += `Prix : *${priceStr}${rental ? '/mois' : ''}*\n`;
-    msg += `${property.rooms} pièce${property.rooms > 1 ? 's' : ''} | ${property.bathrooms} salle${
-      property.bathrooms > 1 ? 's' : ''
-    } de bain`;
+    msg += `${property.neighborhood}, ${property.country}\n`;
+    msg += `${t(`propertyTypes.${property.property_type}`, property.property_type)} – ${property.transaction_type === 'for_rent' ? t('explore.forRent') : t('explore.forSale')}\n`;
+    msg += `*${priceStr}${rental ? t('propertyDetail.perMonth') : ''}*\n`;
+    msg += `${property.rooms} | ${property.bathrooms}`;
     if (property.surface) msg += ` | ${property.surface} m²`;
     msg += '\n';
     if (property.has_water || property.has_electricity || property.has_courtyard) {
       const items = [
-        property.has_water && 'Eau courante',
-        property.has_electricity && 'Électricité',
-        property.has_courtyard && 'Cour',
+        property.has_water && t('propertyDetail.runningWater'),
+        property.has_electricity && t('propertyDetail.electricity'),
+        property.has_courtyard && t('propertyDetail.courtyard'),
       ].filter(Boolean);
       msg += items.join(', ') + '\n';
     }
-    msg += property.is_available ? 'Disponible\n' : 'Indisponible\n';
+    msg += property.is_available ? t('propertyDetail.available') + '\n' : t('propertyDetail.unavailable') + '\n';
     if (property.description) msg += `\n${property.description}\n`;
-    msg += '\nDécouvrez plus de biens sur Gidana.';
+    msg += '\n' + t('propertyDetail.moreOnGidana');
     return msg;
-  }
-
-  async function downloadPropertyImage(): Promise<string | null> {
-    const mainImage = property?.images?.find((img) => img.is_main) ?? property?.images?.[0];
-    if (!mainImage?.filename) return null;
-    const ext = mainImage.filename.split('.').pop()?.toLowerCase() ?? 'jpg';
-    const safeName = (property?.title ?? 'annonce')
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
-      .replace(/[^a-zA-Z0-9]/g, '-')
-      .slice(0, 40);
-    const localUri = `${FileSystem.cacheDirectory}Gidana-Annonce-${safeName}.${ext}`;
-    try {
-      const { uri } = await FileSystem.downloadAsync(mainImage.filename, localUri);
-      return uri;
-    } catch {
-      return null;
-    }
-  }
-
-  async function handleShareNative() {
-    setShareModalVisible(false);
-    const localUri = await downloadPropertyImage();
-    try {
-      if (localUri && (await Sharing.isAvailableAsync())) {
-        await Sharing.shareAsync(localUri, {
-          dialogTitle: buildShareText(),
-          mimeType: 'image/jpeg',
-        });
-      } else {
-        await Share.share({ message: buildShareText() });
-      }
-    } catch {}
   }
 
   async function handleShareWhatsApp() {
     setShareModalVisible(false);
-    const localUri = await downloadPropertyImage();
-    try {
-      if (localUri && (await Sharing.isAvailableAsync())) {
-        await Sharing.shareAsync(localUri, {
-          dialogTitle: buildShareText(),
-          mimeType: 'image/jpeg',
-        });
-      } else {
-        const url = `whatsapp://send?text=${encodeURIComponent(buildShareText())}`;
-        await Linking.openURL(url);
-      }
-    } catch {
-      Alert.alert(
-        'WhatsApp non disponible',
-        "Impossible d'ouvrir WhatsApp. Vérifiez qu'il est bien installé."
-      );
-    }
+    if (!property) return;
+    const message = buildShareText();
+    const url = `whatsapp://send?text=${encodeURIComponent(message)}`;
+    Linking.openURL(url).catch(() =>
+      Alert.alert(t('propertyDetail.whatsappNotAvailable'), t('propertyDetail.whatsappNotAvailableDesc'))
+    );
   }
 
   async function handleShareFacebook() {
     setShareModalVisible(false);
-    const localUri = await downloadPropertyImage();
+    if (!property) return;
+    const message = buildShareText();
+    Linking.openURL(`fb-messenger://share/?message=${encodeURIComponent(message)}`).catch(() =>
+      Share.share({ message })
+    );
+  }
+
+  async function handleShareNative() {
+    setShareModalVisible(false);
     try {
-      if (localUri && (await Sharing.isAvailableAsync())) {
-        await Sharing.shareAsync(localUri, {
-          dialogTitle: buildShareText(),
-          mimeType: 'image/jpeg',
-        });
-      } else {
-        const mainImage = property?.images?.find((img) => img.is_main) ?? property?.images?.[0];
-        const shareUrl = mainImage?.filename ? encodeURIComponent(mainImage.filename) : '';
-        const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`;
-        await Linking.openURL(fbUrl);
-      }
-    } catch {
       await Share.share({ message: buildShareText() });
+    } catch (error) {
+      console.error('Error in native share:', error);
     }
   }
 
@@ -262,7 +207,7 @@ export default function PropertyDetailScreen() {
     return (
       <View style={styles.loaderContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loaderText}>Chargement des détails...</Text>
+        <Text style={styles.loaderText}>{t('propertyDetail.loading')}</Text>
       </View>
     );
   }
@@ -271,9 +216,9 @@ export default function PropertyDetailScreen() {
     return (
       <View style={styles.notFoundContainer}>
         <Ionicons name="home-outline" size={64} color={COLORS.textLight} />
-        <Text style={styles.notFound}>Propriété introuvable</Text>
+        <Text style={styles.notFound}>{t('propertyDetail.notFound')}</Text>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>Retour</Text>
+          <Text style={styles.backBtnText}>{t('propertyDetail.back')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -281,15 +226,14 @@ export default function PropertyDetailScreen() {
 
   const images = property.images ?? [];
   const hasValidProfilePic =
-    property.user?.profile_picture &&
-    property.user.profile_picture.trim() !== '' &&
+    ownerUser?.profile_picture &&
+    ownerUser.profile_picture.trim() !== '' &&
     !ownerImgError;
 
   return (
     <>
       <StatusBar style="light" translucent />
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Image Gallery Carousel */}
         <View style={styles.gallery}>
           {images.length > 0 ? (
             <ScrollView
@@ -307,7 +251,7 @@ export default function PropertyDetailScreen() {
                   activeOpacity={0.95}
                   onPress={() => openFullScreenImage(img.filename)}
                 >
-                  <Image source={{ uri: img.filename }} style={styles.mainImage} resizeMode="cover" />
+                  <Image source={{ uri: img.filename }} style={styles.mainImage} contentFit="cover" cachePolicy="memory-disk" transition={200} />
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -316,6 +260,12 @@ export default function PropertyDetailScreen() {
               <Ionicons name="image-outline" size={60} color={COLORS.textLight} />
             </View>
           )}
+
+          <LinearGradient
+            colors={['rgba(0,0,0,0.55)', 'transparent']}
+            style={[styles.statusBarGradient, { height: insets.top + 60 }]}
+            pointerEvents="none"
+          />
 
           {images.length > 1 && (
             <View style={styles.dotsContainer}>
@@ -360,7 +310,6 @@ export default function PropertyDetailScreen() {
         </View>
 
         <View style={styles.content}>
-          {/* Owner Actions */}
           {isOwner && (
             <View style={styles.ownerActions}>
               <TouchableOpacity
@@ -375,7 +324,7 @@ export default function PropertyDetailScreen() {
                 activeOpacity={0.7}
               >
                 <Ionicons name="pencil-outline" size={16} color={COLORS.primary} />
-                <Text style={styles.ownerEditText}>Modifier</Text>
+                <Text style={styles.ownerEditText}>{t('propertyDetail.edit')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.ownerDeleteBtn}
@@ -383,17 +332,16 @@ export default function PropertyDetailScreen() {
                 activeOpacity={0.7}
               >
                 <Ionicons name="trash-outline" size={16} color="#ef4444" />
-                <Text style={styles.ownerDeleteText}>Supprimer</Text>
+                <Text style={styles.ownerDeleteText}>{t('propertyDetail.deleteProperty')}</Text>
               </TouchableOpacity>
             </View>
           )}
 
-          {/* Title & Price */}
           <View style={styles.titleRow}>
             <View style={styles.badges}>
               <Chip compact style={styles.transactionChip}>
                 <Text style={{ color: '#fff', fontSize: 12, fontFamily: 'Poppins-Medium' }}>
-                  {property.transaction_type}
+                  {property.transaction_type === 'for_rent' ? t('explore.forRent') : t('explore.forSale')}
                 </Text>
               </Chip>
               <Chip
@@ -404,15 +352,13 @@ export default function PropertyDetailScreen() {
                 ]}
               >
                 <Text style={{ color: '#fff', fontSize: 12, fontFamily: 'Poppins-Medium' }}>
-                  {property.is_available ? 'Disponible' : 'Indisponible'}
+                  {property.is_available ? t('propertyDetail.available') : t('propertyDetail.unavailable')}
                 </Text>
               </Chip>
             </View>
           </View>
 
-          <Text variant="headlineSmall" style={styles.title}>
-            {property.title}
-          </Text>
+          <Text variant="headlineSmall" style={styles.title}>{property.title}</Text>
 
           <View style={styles.locationRow}>
             <Ionicons name="location-outline" size={18} color={COLORS.primary} />
@@ -423,8 +369,8 @@ export default function PropertyDetailScreen() {
 
           <Text style={styles.price}>
             {formatCurrency(property.price, property.currency)}
-            {property.transaction_type === 'À louer' && (
-              <Text style={styles.perMonth}> /mois</Text>
+            {property.transaction_type === 'for_rent' && (
+              <Text style={styles.perMonth}>{t('propertyDetail.perMonth')}</Text>
             )}
           </Text>
 
@@ -432,7 +378,7 @@ export default function PropertyDetailScreen() {
             <TouchableOpacity style={styles.ratingRow}>
               <StarRating rating={property.average_rating} size={16} />
               <Text style={styles.ratingText}>
-                {property.average_rating.toFixed(1)} ({property.review_count} avis)
+                {property.average_rating.toFixed(1)} ({property.review_count})
               </Text>
               <Ionicons name="chevron-forward" size={16} color={COLORS.textLight} />
             </TouchableOpacity>
@@ -440,23 +386,20 @@ export default function PropertyDetailScreen() {
 
           <Divider style={styles.divider} />
 
-          {/* Owner Information */}
           <View style={styles.ownerSection}>
-            <Text style={styles.sectionTitle}>Propriétaire</Text>
+            <Text style={styles.sectionTitle}>{t('propertyDetail.owner')}</Text>
             <View style={styles.ownerCard}>
               {hasValidProfilePic ? (
                 <Image
-                  source={{ uri: property.user.profile_picture }}
+                  source={{ uri: ownerUser!.profile_picture }}
                   style={styles.ownerAvatar}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={200}
                   onError={() => setOwnerImgError(true)}
                 />
               ) : (
-                <View
-                  style={[
-                    styles.ownerAvatarPlaceholder,
-                    { backgroundColor: COLORS.primary + '20' },
-                  ]}
-                >
+                <View style={[styles.ownerAvatarPlaceholder, { backgroundColor: COLORS.primary + '20' }]}>
                   <Ionicons name="person-outline" size={30} color={COLORS.primary} />
                 </View>
               )}
@@ -464,43 +407,39 @@ export default function PropertyDetailScreen() {
                 <View style={styles.ownerNameRow}>
                   <Text style={styles.ownerName}>
                     {isOwner
-                      ? 'Vous'
-                      : `${property.user?.first_name || ''} ${property.user?.last_name || ''}`.trim() ||
-                        'Propriétaire'}
+                      ? t('propertyDetail.you')
+                      : `${ownerUser?.first_name || ''} ${ownerUser?.last_name || ''}`.trim() ||
+                        t('propertyDetail.owner')}
                   </Text>
                   <View style={styles.verifiedBadge}>
                     <Ionicons name="checkmark-circle" size={13} color="#fff" />
-                    <Text style={styles.verifiedText}>Vérifié</Text>
+                    <Text style={styles.verifiedText}>{t('propertyDetail.verified')}</Text>
                   </View>
                 </View>
-                {!isOwner && property.user?.email ? (
-                  <Text style={styles.ownerContact}>{property.user.email}</Text>
+                {!isOwner && ownerUser?.email ? (
+                  <Text style={styles.ownerContact}>{ownerUser.email}</Text>
                 ) : null}
-                {!isOwner && property.user?.phone_number ? (
-                  <Text style={styles.ownerContact}>{property.user.phone_number}</Text>
+                {!isOwner && ownerUser?.phone_number ? (
+                  <Text style={styles.ownerContact}>{ownerUser.phone_number}</Text>
                 ) : null}
-                <Text style={styles.ownerSince}>Membre depuis {getMemberSinceYear()}</Text>
+                <Text style={styles.ownerSince}>{t('propertyDetail.memberSince', { year: getMemberSinceYear() })}</Text>
               </View>
             </View>
           </View>
 
           <Divider style={styles.divider} />
 
-          {/* Details */}
-          <Text style={styles.sectionTitle}>Caractéristiques</Text>
+          <Text style={styles.sectionTitle}>{t('propertyDetail.characteristics')}</Text>
           <View style={styles.detailsGrid}>
             {[
-              { icon: 'home-outline', label: property.property_type },
-              { icon: 'bed-outline', label: `${property.rooms} pièce${property.rooms > 1 ? 's' : ''}` },
-              {
-                icon: 'water-outline',
-                label: `${property.bathrooms} salle de bain${property.bathrooms > 1 ? 's' : ''}`,
-              },
+              { icon: 'home-outline', label: t(`propertyTypes.${property.property_type}`, property.property_type) },
+              { icon: 'bed-outline', label: t('propertyDetail.rooms', { count: property.rooms }) },
+              { icon: 'water-outline', label: t('propertyDetail.bathrooms', { count: property.bathrooms }) },
               property.surface ? { icon: 'resize-outline', label: `${property.surface} m²` } : null,
               property.shower_type
                 ? {
                     icon: 'sparkles-outline',
-                    label: property.shower_type === 'interne' ? 'Douche interne' : 'Douche externe',
+                    label: property.shower_type === 'internal' ? t('propertyDetail.internalShower') : t('propertyDetail.externalShower'),
                   }
                 : null,
             ]
@@ -513,24 +452,23 @@ export default function PropertyDetailScreen() {
               ))}
           </View>
 
-          {/* Amenities */}
           {(property.has_water || property.has_electricity || property.has_courtyard) && (
             <>
-              <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Équipements</Text>
+              <Text style={[styles.sectionTitle, { marginTop: 16 }]}>{t('propertyDetail.amenities')}</Text>
               <View style={styles.amenities}>
                 {property.has_water && (
                   <Chip icon="water" compact style={styles.amenityChip}>
-                    <Text style={styles.amenityText}>Eau courante</Text>
+                    <Text style={styles.amenityText}>{t('propertyDetail.runningWater')}</Text>
                   </Chip>
                 )}
                 {property.has_electricity && (
                   <Chip icon="flash" compact style={styles.amenityChip}>
-                    <Text style={styles.amenityText}>Électricité</Text>
+                    <Text style={styles.amenityText}>{t('propertyDetail.electricity')}</Text>
                   </Chip>
                 )}
                 {property.has_courtyard && (
                   <Chip icon="flower" compact style={styles.amenityChip}>
-                    <Text style={styles.amenityText}>Cour</Text>
+                    <Text style={styles.amenityText}>{t('propertyDetail.courtyard')}</Text>
                   </Chip>
                 )}
               </View>
@@ -540,7 +478,7 @@ export default function PropertyDetailScreen() {
           {property.description && (
             <>
               <Divider style={styles.divider} />
-              <Text style={styles.sectionTitle}>Description</Text>
+              <Text style={styles.sectionTitle}>{t('propertyDetail.description')}</Text>
               <Text style={styles.description}>{property.description}</Text>
             </>
           )}
@@ -554,7 +492,6 @@ export default function PropertyDetailScreen() {
 
           <Divider style={styles.divider} />
 
-          {/* Contact – in-app messaging only */}
           {!isOwner && (
             <Button
               mode="contained"
@@ -566,15 +503,14 @@ export default function PropertyDetailScreen() {
               buttonColor={COLORS.primary}
               labelStyle={styles.messageBtnText}
             >
-              Contacter le propriétaire
+              {t('propertyDetail.contactOwner')}
             </Button>
           )}
 
-          {/* Reviews Section */}
           <Divider style={styles.divider} />
 
           <View style={styles.reviewsHeader}>
-            <Text style={styles.sectionTitle}>Avis ({property.review_count})</Text>
+            <Text style={styles.sectionTitle}>{t('propertyDetail.reviews', { count: property.review_count })}</Text>
             {property.review_count > 0 && (
               <Text style={styles.averageRating}>{property.average_rating.toFixed(1)} ★</Text>
             )}
@@ -588,19 +524,17 @@ export default function PropertyDetailScreen() {
                 <View style={styles.reviewHeader}>
                   {hasValidReviewPic ? (
                     <Image
-                      source={{ uri: review.user.profile_picture }}
+                      source={{ uri: review.user!.profile_picture }}
                       style={styles.reviewAvatar}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                      transition={150}
                       onError={() =>
                         setReviewImgErrors((prev) => ({ ...prev, [review.id]: true }))
                       }
                     />
                   ) : (
-                    <View
-                      style={[
-                        styles.reviewAvatarPlaceholder,
-                        { backgroundColor: COLORS.primary + '20' },
-                      ]}
-                    >
+                    <View style={[styles.reviewAvatarPlaceholder, { backgroundColor: COLORS.primary + '20' }]}>
                       <Ionicons name="person-outline" size={22} color={COLORS.primary} />
                     </View>
                   )}
@@ -617,22 +551,16 @@ export default function PropertyDetailScreen() {
             );
           })}
 
-          {/* Add Review Section */}
           {user && (
             <View style={styles.addReviewSection}>
-              <Text style={[styles.sectionTitle, { marginTop: 8 }]}>Laisser un avis</Text>
+              <Text style={[styles.sectionTitle, { marginTop: 8 }]}>{t('propertyDetail.leaveReview')}</Text>
               <View style={styles.ratingInput}>
-                <Text style={styles.ratingLabel}>Votre note :</Text>
-                <StarRating
-                  rating={reviewRating}
-                  interactive
-                  onRate={setReviewRating}
-                  size={32}
-                />
+                <Text style={styles.ratingLabel}>{t('propertyDetail.yourRating')}</Text>
+                <StarRating rating={reviewRating} interactive onRate={setReviewRating} size={32} />
               </View>
               <TextInput
                 mode="outlined"
-                label="Votre commentaire (optionnel)"
+                label={t('propertyDetail.yourComment')}
                 value={reviewComment}
                 onChangeText={setReviewComment}
                 multiline
@@ -647,7 +575,7 @@ export default function PropertyDetailScreen() {
                 style={styles.submitReviewBtn}
                 buttonColor={COLORS.primary}
               >
-                Publier l'avis
+                {t('propertyDetail.publishReview')}
               </Button>
             </View>
           )}
@@ -656,7 +584,6 @@ export default function PropertyDetailScreen() {
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Share Modal */}
       <Modal
         visible={shareModalVisible}
         transparent
@@ -670,7 +597,7 @@ export default function PropertyDetailScreen() {
         >
           <View style={styles.shareSheet}>
             <View style={styles.shareHandle} />
-            <Text style={styles.shareTitle}>Partager cette propriété</Text>
+            <Text style={styles.shareTitle}>{t('propertyDetail.shareProperty')}</Text>
 
             <View style={styles.shareOptions}>
               <TouchableOpacity style={styles.shareOption} onPress={handleShareWhatsApp}>
@@ -691,7 +618,7 @@ export default function PropertyDetailScreen() {
                 <View style={[styles.shareOptionIcon, { backgroundColor: COLORS.primary }]}>
                   <Ionicons name="share-outline" size={26} color="#fff" />
                 </View>
-                <Text style={styles.shareOptionLabel}>Autres</Text>
+                <Text style={styles.shareOptionLabel}>{t('propertyDetail.others')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -699,13 +626,12 @@ export default function PropertyDetailScreen() {
               style={styles.shareCancelBtn}
               onPress={() => setShareModalVisible(false)}
             >
-              <Text style={styles.shareCancelText}>Annuler</Text>
+              <Text style={styles.shareCancelText}>{t('common.cancel')}</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
 
-      {/* Full Screen Image Modal */}
       <Modal
         visible={modalVisible}
         transparent={true}
@@ -720,7 +646,8 @@ export default function PropertyDetailScreen() {
             <Image
               source={{ uri: selectedImage }}
               style={styles.fullScreenImage}
-              resizeMode="contain"
+              contentFit="contain"
+              cachePolicy="memory-disk"
             />
           )}
         </View>
@@ -728,4 +655,3 @@ export default function PropertyDetailScreen() {
     </>
   );
 }
-

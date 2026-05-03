@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React, { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as Notifications from 'expo-notifications';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
@@ -11,8 +12,10 @@ import FavoritesScreen from '../screens/favorites/FavoritesScreen';
 import HomeScreen from '../screens/home/HomeScreen';
 import PayServiceScreen from '../screens/payment/PayServiceScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
+import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import AddPropertyScreen from '../screens/property/AddPropertyScreen';
 import MyPropertiesScreen from '../screens/property/MyPropertiesScreen';
+import MyRentalsScreen from '../screens/property/MyRentalsScreen';
 import PropertyDetailScreen from '../screens/property/PropertyDetailScreen';
 import TransactionsScreen from '../screens/transactions/TransactionsScreen';
 import AddWalletScreen from '../screens/wallet/AddWalletScreen';
@@ -37,6 +40,7 @@ const HEADER_OPTIONS = {
 };
 
 function HomeTabs() {
+  const { t } = useTranslation();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -63,15 +67,16 @@ function HomeTabs() {
         headerShown: false,
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Accueil' }} />
-      <Tab.Screen name="Explore" component={ExploreScreen} options={{ title: 'Explorer' }} />
-      <Tab.Screen name="Favorites" component={FavoritesScreen} options={{ title: 'Favoris' }} />
-      <Tab.Screen name="Messages" component={ConversationsScreen} options={{ title: 'Messages' }} />
+      <Tab.Screen name="Home" component={HomeScreen} options={{ title: t('navigation.home', 'Home') }} />
+      <Tab.Screen name="Explore" component={ExploreScreen} options={{ title: t('explore.title') }} />
+      <Tab.Screen name="Favorites" component={FavoritesScreen} options={{ title: t('profile.favorites') }} />
+      <Tab.Screen name="Messages" component={ConversationsScreen} options={{ title: t('profile.messages') }} />
     </Tab.Navigator>
   );
 }
 
 export default function MainNavigator() {
+  const { t } = useTranslation();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasSeenOnboarding = useAppStore((s) => s.hasSeenOnboarding);
   const addNotification = useAlertStore((s) => s.addNotification);
@@ -130,29 +135,39 @@ export default function MainNavigator() {
             options={{ headerShown: false }}
           />
           <Stack.Screen
+            name="MyRentals"
+            component={MyRentalsScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
             name="Profile"
             component={ProfileScreen}
             options={{ headerShown: false }}
           />
           <Stack.Screen
+            name="EditProfile"
+            component={EditProfileScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
             name="Wallet"
             component={WalletScreen}
-            options={{ title: 'Portefeuille', headerTitleStyle: { fontFamily: 'Poppins-SemiBold' } }}
+            options={{ title: t('navigation.wallet'), headerTitleStyle: { fontFamily: 'Poppins-SemiBold' } }}
           />
           <Stack.Screen
             name="AddWallet"
             component={AddWalletScreen}
-            options={{ title: 'Ajouter un portefeuille', headerTitleStyle: { fontFamily: 'Poppins-SemiBold' } }}
+            options={{ title: t('navigation.addWallet'), headerTitleStyle: { fontFamily: 'Poppins-SemiBold' } }}
           />
           <Stack.Screen
             name="Transactions"
             component={TransactionsScreen}
-            options={{ title: 'Transactions', headerTitleStyle: { fontFamily: 'Poppins-SemiBold' } }}
+            options={{ title: t('navigation.transactions'), headerTitleStyle: { fontFamily: 'Poppins-SemiBold' } }}
           />
           <Stack.Screen
             name="PayService"
             component={PayServiceScreen}
-            options={{ title: 'Payer un service', headerTitleStyle: { fontFamily: 'Poppins-SemiBold' } }}
+            options={{ title: t('navigation.payService'), headerTitleStyle: { fontFamily: 'Poppins-SemiBold' } }}
           />
         </>
       ) : (

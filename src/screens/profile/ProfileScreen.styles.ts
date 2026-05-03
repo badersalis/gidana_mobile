@@ -264,4 +264,19 @@ export default StyleSheet.create({
     fontFamily: 'Poppins-SemiBold',
     color: '#ef4444',
   },
+  copyright: {
+    alignItems: 'center',
+    marginTop: 24,
+    gap: 2,
+  },
+  copyrightText: {
+    fontFamily: 'Poppins-SemiBold',
+    fontSize: 12,
+    color: COLORS.primary,
+  },
+  copyrightSub: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 11,
+    color: COLORS.textLight,
+  },
 });

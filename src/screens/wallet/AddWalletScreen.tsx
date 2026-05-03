@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Alert, ScrollView, View } from 'react-native';
 import styles from './AddWalletScreen.styles';
 import { Button, SegmentedButtons, Switch, Text, TextInput } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import { walletApi } from '../../api/wallet';
 import { COLORS } from '../../utils/theme';
 
@@ -11,6 +12,7 @@ const CURRENCIES = ['XOF', 'EUR', 'USD'];
 
 export default function AddWalletScreen() {
   const navigation = useNavigation<any>();
+  const { t } = useTranslation();
   const [provider, setProvider] = useState('Nita');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -40,11 +42,11 @@ export default function AddWalletScreen() {
         currency,
         selected: setAsDefault,
       });
-      Alert.alert('Portefeuille ajouté', 'Vous pouvez maintenant l\'utiliser pour vos paiements.', [
-        { text: 'OK', onPress: () => navigation.goBack() },
+      Alert.alert(t('addWallet.addedTitle'), t('addWallet.addedDesc'), [
+        { text: t('common.ok'), onPress: () => navigation.goBack() },
       ]);
     } catch (e: any) {
-      Alert.alert('Erreur', e.response?.data?.error ?? 'Erreur lors de l\'ajout');
+      Alert.alert(t('common.error'), e.response?.data?.error ?? t('addWallet.addError'));
     } finally {
       setLoading(false);
     }
@@ -52,7 +54,7 @@ export default function AddWalletScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scroll}>
-      <Text variant="titleMedium" style={styles.label}>Fournisseur</Text>
+      <Text variant="titleMedium" style={styles.label}>{t('addWallet.provider')}</Text>
       <View style={styles.providerGrid}>
         {PROVIDERS.map((p) => (
           <Button
@@ -69,29 +71,29 @@ export default function AddWalletScreen() {
 
       {isMobileMoney && (
         <>
-          <TextInput mode="outlined" label="Numéro de téléphone (+XXXXXXXXXXX)" value={phone} onChangeText={setPhone} keyboardType="phone-pad" style={styles.input} />
-          <TextInput mode="outlined" label="Code PIN / Mot de passe" value={password} onChangeText={setPassword} secureTextEntry style={styles.input} />
+          <TextInput mode="outlined" label={t('addWallet.phoneLabel')} value={phone} onChangeText={setPhone} keyboardType="phone-pad" style={styles.input} />
+          <TextInput mode="outlined" label={t('addWallet.pinLabel')} value={password} onChangeText={setPassword} secureTextEntry style={styles.input} />
         </>
       )}
 
       {isPayPal && (
         <>
-          <TextInput mode="outlined" label="Adresse email PayPal" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" style={styles.input} />
-          <TextInput mode="outlined" label="Mot de passe PayPal" value={password} onChangeText={setPassword} secureTextEntry style={styles.input} />
+          <TextInput mode="outlined" label={t('addWallet.paypalEmail')} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" style={styles.input} />
+          <TextInput mode="outlined" label={t('addWallet.paypalPassword')} value={password} onChangeText={setPassword} secureTextEntry style={styles.input} />
         </>
       )}
 
       {isCard && (
         <>
-          <TextInput mode="outlined" label="Numéro de carte" value={cardNumber} onChangeText={setCardNumber} keyboardType="numeric" maxLength={16} style={styles.input} />
+          <TextInput mode="outlined" label={t('addWallet.cardNumber')} value={cardNumber} onChangeText={setCardNumber} keyboardType="numeric" maxLength={16} style={styles.input} />
           <View style={styles.row}>
             <TextInput mode="outlined" label="CVV" value={cvv} onChangeText={setCvv} keyboardType="numeric" maxLength={4} style={[styles.input, styles.half]} />
-            <TextInput mode="outlined" label="Expiration (MM/AA)" value={expiration} onChangeText={setExpiration} placeholder="MM/AA" style={[styles.input, styles.half]} />
+            <TextInput mode="outlined" label={t('addWallet.expiration')} value={expiration} onChangeText={setExpiration} placeholder="MM/AA" style={[styles.input, styles.half]} />
           </View>
         </>
       )}
 
-      <Text variant="titleMedium" style={styles.label}>Devise</Text>
+      <Text variant="titleMedium" style={styles.label}>{t('addWallet.currency')}</Text>
       <SegmentedButtons
         value={currency}
         onValueChange={setCurrency}
@@ -100,7 +102,7 @@ export default function AddWalletScreen() {
       />
 
       <View style={styles.switchRow}>
-        <Text>Définir comme portefeuille par défaut</Text>
+        <Text>{t('addWallet.setDefault')}</Text>
         <Switch value={setAsDefault} onValueChange={setSetAsDefault} />
       </View>
 
@@ -109,7 +111,7 @@ export default function AddWalletScreen() {
         loading={loading} disabled={loading}
         style={styles.button} contentStyle={styles.buttonContent}
       >
-        Ajouter le portefeuille
+        {t('addWallet.addButton')}
       </Button>
     </ScrollView>
   );

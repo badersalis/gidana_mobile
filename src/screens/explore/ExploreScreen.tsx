@@ -16,6 +16,7 @@ import {
 import styles from './ExploreScreen.styles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityIndicator, Text } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import PropertyCard from '../../components/PropertyCard';
 import { favoritesApi } from '../../api/favorites';
 import { propertyApi } from '../../api/properties';
@@ -25,14 +26,19 @@ import { alertsApi } from '../../api/alerts';
 import { Property, SearchHistoryItem } from '../../types';
 import { COLORS } from '../../utils/theme';
 
-type TransactionFilter = 'Tout' | 'À louer' | 'À vendre';
-const TRANSACTION_FILTERS: TransactionFilter[] = ['Tout', 'À louer', 'À vendre'];
+type TransactionFilter = 'all' | 'forRent' | 'forSale';
 
 export default function ExploreScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const { t } = useTranslation();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const user = useAuthStore((s) => s.user);
+
+  const TRANSACTION_FILTERS: { key: TransactionFilter; apiValue: string | undefined }[] = [
+    { key: 'all', apiValue: undefined },
+    { key: 'forRent', apiValue: 'for_rent' },
+    { key: 'forSale', apiValue: 'for_sale' },
+  ];
 
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,11 +48,10 @@ export default function ExploreScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<TransactionFilter>('Tout');
+  const [activeFilter, setActiveFilter] = useState<TransactionFilter>('all');
   const [propertyType, setPropertyType] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  
-  // Search suggestions & history
+
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -56,40 +61,27 @@ export default function ExploreScreen() {
   const { place: userPlace, loading: locationLoading, requestLocation } = useLocation();
 
   const searchInputRef = useRef<TextInput>(null);
-  const debounceTimer = useRef<NodeJS.Timeout>();
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  // Load search history on mount
+  const activeApiValue = TRANSACTION_FILTERS.find((f) => f.key === activeFilter)?.apiValue;
+
   useEffect(() => {
-    if (isAuthenticated) {
-      loadSearchHistory();
-    }
+    if (isAuthenticated) loadSearchHistory();
   }, [isAuthenticated]);
 
-  // Get search suggestions as user types
   useEffect(() => {
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
-    }
-
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
     if (searchQuery.length >= 2) {
-      debounceTimer.current = setTimeout(() => {
-        fetchSuggestions();
-      }, 300);
+      debounceTimer.current = setTimeout(() => fetchSuggestions(), 300);
     } else {
       setSuggestions([]);
       setShowSuggestions(false);
     }
-
-    return () => {
-      if (debounceTimer.current) {
-        clearTimeout(debounceTimer.current);
-      }
-    };
+    return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
   }, [searchQuery]);
 
   async function fetchSuggestions() {
     if (searchQuery.length < 2) return;
-
     setLoadingSuggestions(true);
     try {
       const [suggestionsData, places] = await Promise.all([
@@ -125,12 +117,9 @@ export default function ExploreScreen() {
 
   async function saveSearchTerm(term: string) {
     if (!term.trim()) return;
-    
     try {
       await searchApi.saveSearchHistory(term);
-      if (isAuthenticated) {
-        await loadSearchHistory();
-      }
+      if (isAuthenticated) await loadSearchHistory();
     } catch (error) {
       console.error('Error saving search term:', error);
     }
@@ -140,7 +129,6 @@ export default function ExploreScreen() {
     setSearchQuery(query);
     setShowSuggestions(false);
     setSuggestions([]);
-    
     await saveSearchTerm(query);
     await loadProperties(1, true);
   }
@@ -155,22 +143,21 @@ export default function ExploreScreen() {
 
   async function clearSearchHistory() {
     if (!isAuthenticated) return;
-    
     Alert.alert(
-      'Effacer l\'historique',
-      'Voulez-vous vraiment effacer tout votre historique de recherche ?',
+      t('explore.clearHistoryTitle'),
+      t('explore.clearHistoryConfirm'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Effacer',
+          text: t('explore.clear'),
           style: 'destructive',
           onPress: async () => {
             try {
               await searchApi.clearSearchHistory();
               setSearchHistory([]);
-              Alert.alert('Historique effacé', 'Vos recherches récentes ont été supprimées.');
-            } catch (error) {
-              Alert.alert('Erreur', 'Impossible d\'effacer l\'historique');
+              Alert.alert(t('explore.historyCleared'), t('explore.historyClearedDesc'));
+            } catch {
+              Alert.alert(t('common.error'), t('explore.clearError'));
             }
           },
         },
@@ -178,11 +165,8 @@ export default function ExploreScreen() {
     );
   }
 
-  // Accept property type from home screen categories
   useEffect(() => {
-    if (route.params?.propertyType) {
-      setPropertyType(route.params.propertyType);
-    }
+    if (route.params?.propertyType) setPropertyType(route.params.propertyType);
   }, [route.params?.propertyType]);
 
   async function loadProperties(p = 1, reset = false) {
@@ -192,7 +176,7 @@ export default function ExploreScreen() {
         page: p,
         q: searchQuery || undefined,
         property_type: propertyType || undefined,
-        transaction_type: activeFilter === 'Tout' ? undefined : activeFilter,
+        transaction_type: activeApiValue,
       });
       if (reset || p === 1) {
         setProperties(data.data);
@@ -208,9 +192,7 @@ export default function ExploreScreen() {
     setLoadingMore(false);
   }
 
-  useEffect(() => { 
-    loadProperties(1, true); 
-  }, [searchQuery, activeFilter, propertyType]);
+  useEffect(() => { loadProperties(1, true); }, [searchQuery, activeFilter, propertyType]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -228,26 +210,26 @@ export default function ExploreScreen() {
   async function handleCreateAlert() {
     if (!isAuthenticated) { navigation.navigate('Login'); return; }
     const criteria: string[] = [];
-    if (searchQuery) criteria.push(`Lieu : ${searchQuery}`);
-    if (activeFilter !== 'Tout') criteria.push(`Transaction : ${activeFilter}`);
-    if (propertyType) criteria.push(`Type : ${propertyType}`);
+    if (searchQuery) criteria.push(`${t('explore.location')} : ${searchQuery}`);
+    if (activeFilter !== 'all') criteria.push(`${t('explore.transaction')} : ${t(`explore.${activeFilter}`)}`);
+    if (propertyType) criteria.push(`${t('explore.type')} : ${propertyType}`);
     Alert.alert(
-      'Créer une alerte',
-      `Vous serez notifié dès qu'une propriété correspond à :\n${criteria.length ? criteria.join('\n') : 'tous les critères actuels'}`,
+      t('explore.createAlertTitle'),
+      t('explore.createAlertBody', { criteria: criteria.length ? criteria.join('\n') : t('explore.allCriteria') }),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Créer',
+          text: t('explore.create'),
           onPress: async () => {
             try {
               await alertsApi.create({
                 neighborhood: searchQuery || undefined,
-                transaction_type: activeFilter !== 'Tout' ? activeFilter : undefined,
+                transaction_type: activeApiValue,
                 property_type: propertyType || undefined,
               });
-              Alert.alert('Alerte créée', 'Vous serez notifié dès qu\'une propriété correspond à vos critères.');
+              Alert.alert(t('explore.alertCreated'), t('explore.alertCreatedDesc'));
             } catch (e: any) {
-              Alert.alert('Erreur', e.response?.data?.error ?? 'Impossible de créer l\'alerte');
+              Alert.alert(t('common.error'), e.response?.data?.error ?? t('explore.alertError'));
             }
           },
         },
@@ -270,25 +252,17 @@ export default function ExploreScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
-      
-      {/* Header */}
+
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Explorer</Text>
-        <TouchableOpacity 
-          style={styles.filterButton}
-          onPress={() => setShowFilters(!showFilters)}
-        >
+        <Text style={styles.headerTitle}>{t('explore.title')}</Text>
+        <TouchableOpacity style={styles.filterButton} onPress={() => setShowFilters(!showFilters)}>
           <Ionicons name="options-outline" size={24} color="#333" />
         </TouchableOpacity>
       </View>
 
-      {/* Search bar with suggestions */}
       <View style={styles.searchSection}>
         <View style={styles.searchRow}>
           <View style={[styles.searchField, { flex: 1 }]}>
@@ -296,7 +270,7 @@ export default function ExploreScreen() {
             <TextInput
               ref={searchInputRef}
               style={styles.searchInput}
-              placeholder="Quartier, ville, pays…"
+              placeholder={t('explore.searchPlaceholder')}
               placeholderTextColor="#adb5bd"
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -310,9 +284,7 @@ export default function ExploreScreen() {
                   setShowSuggestions(true);
                 }
               }}
-              onBlur={() => {
-                setTimeout(() => setShowSuggestions(false), 200);
-              }}
+              onBlur={() => { setTimeout(() => setShowSuggestions(false), 200); }}
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={clearSearch} style={styles.clearBtn}>
@@ -329,7 +301,6 @@ export default function ExploreScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Suggestions Dropdown */}
         {showSuggestions && (
           <View style={styles.suggestionsContainer}>
             {loadingSuggestions ? (
@@ -340,7 +311,7 @@ export default function ExploreScreen() {
               <>
                 {suggestions.length > 0 && (
                   <>
-                    <Text style={styles.suggestionsHeader}>Suggestions</Text>
+                    <Text style={styles.suggestionsHeader}>{t('explore.suggestions')}</Text>
                     {suggestions.map((suggestion, index) => (
                       <TouchableOpacity
                         key={`s-${index}`}
@@ -355,7 +326,7 @@ export default function ExploreScreen() {
                 )}
                 {geoPlaces.length > 0 && (
                   <>
-                    <Text style={styles.suggestionsHeader}>Lieux</Text>
+                    <Text style={styles.suggestionsHeader}>{t('explore.places')}</Text>
                     {geoPlaces.map((place, index) => (
                       <TouchableOpacity
                         key={`g-${index}`}
@@ -379,9 +350,9 @@ export default function ExploreScreen() {
             ) : isAuthenticated && searchHistory.length > 0 && !searchQuery ? (
               <>
                 <View style={styles.historyHeader}>
-                  <Text style={styles.suggestionsHeader}>Recherches récentes</Text>
+                  <Text style={styles.suggestionsHeader}>{t('explore.recentSearches')}</Text>
                   <TouchableOpacity onPress={clearSearchHistory}>
-                    <Text style={styles.clearHistoryText}>Effacer</Text>
+                    <Text style={styles.clearHistoryText}>{t('explore.clear')}</Text>
                   </TouchableOpacity>
                 </View>
                 {searchHistory.map((item) => (
@@ -399,21 +370,16 @@ export default function ExploreScreen() {
           </View>
         )}
 
-        {/* Filter chips: Tout / À louer / À vendre */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterChips}
-        >
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChips}>
           {TRANSACTION_FILTERS.map((f) => (
             <TouchableOpacity
-              key={f}
-              style={[styles.chip, activeFilter === f && styles.chipActive]}
-              onPress={() => setActiveFilter(f)}
+              key={f.key}
+              style={[styles.chip, activeFilter === f.key && styles.chipActive]}
+              onPress={() => setActiveFilter(f.key)}
               activeOpacity={0.8}
             >
-              <Text style={[styles.chipText, activeFilter === f && styles.chipTextActive]}>
-                {f}
+              <Text style={[styles.chipText, activeFilter === f.key && styles.chipTextActive]}>
+                {t(`explore.${f.key}`)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -423,55 +389,36 @@ export default function ExploreScreen() {
               onPress={() => setPropertyType(null)}
               activeOpacity={0.8}
             >
-              <Text style={[styles.chipText, styles.chipTextActive]}>
-                {propertyType} Ã—
-              </Text>
+              <Text style={[styles.chipText, styles.chipTextActive]}>{propertyType} ×</Text>
             </TouchableOpacity>
           )}
         </ScrollView>
       </View>
 
-      {/* Advanced Filters (collapsible) */}
       {showFilters && (
         <View style={styles.advancedFilters}>
           <View style={styles.filterRow}>
-            <Text style={styles.filterLabel}>Prix min</Text>
-            <TextInput
-              style={styles.filterInput}
-              placeholder="0 FCFA"
-              placeholderTextColor="#adb5bd"
-              keyboardType="numeric"
-            />
+            <Text style={styles.filterLabel}>{t('explore.minPrice')}</Text>
+            <TextInput style={styles.filterInput} placeholder="0 FCFA" placeholderTextColor="#adb5bd" keyboardType="numeric" />
           </View>
           <View style={styles.filterRow}>
-            <Text style={styles.filterLabel}>Prix max</Text>
-            <TextInput
-              style={styles.filterInput}
-              placeholder="Illimité"
-              placeholderTextColor="#adb5bd"
-              keyboardType="numeric"
-            />
+            <Text style={styles.filterLabel}>{t('explore.maxPrice')}</Text>
+            <TextInput style={styles.filterInput} placeholder={t('explore.unlimited')} placeholderTextColor="#adb5bd" keyboardType="numeric" />
           </View>
           <View style={styles.filterRow}>
-            <Text style={styles.filterLabel}>Surface min</Text>
-            <TextInput
-              style={styles.filterInput}
-              placeholder="0 mÂ²"
-              placeholderTextColor="#adb5bd"
-              keyboardType="numeric"
-            />
+            <Text style={styles.filterLabel}>{t('explore.minSurface')}</Text>
+            <TextInput style={styles.filterInput} placeholder="0 m²" placeholderTextColor="#adb5bd" keyboardType="numeric" />
           </View>
           <TouchableOpacity style={styles.applyFiltersBtn}>
-            <Text style={styles.applyFiltersText}>Appliquer les filtres</Text>
+            <Text style={styles.applyFiltersText}>{t('explore.applyFilters')}</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* Results */}
       {loading ? (
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loaderText}>Chargement des propriétés...</Text>
+          <Text style={styles.loaderText}>{t('explore.loading')}</Text>
         </View>
       ) : (
         <FlatList
@@ -491,7 +438,7 @@ export default function ExploreScreen() {
             loadingMore ? (
               <View style={styles.loadingMore}>
                 <ActivityIndicator color={COLORS.primary} />
-                <Text style={styles.loadingMoreText}>Chargement...</Text>
+                <Text style={styles.loadingMoreText}>{t('explore.loadingMore')}</Text>
               </View>
             ) : null
           }
@@ -500,25 +447,23 @@ export default function ExploreScreen() {
               <View style={styles.emptyIconContainer}>
                 <Ionicons name="home-outline" size={64} color={COLORS.primary} />
               </View>
-              <Text style={styles.emptyTitle}>Aucun résultat trouvé</Text>
-              <Text style={styles.emptyText}>
-                Aucune propriété ne correspond à vos critères de recherche.
-              </Text>
+              <Text style={styles.emptyTitle}>{t('explore.noResults')}</Text>
+              <Text style={styles.emptyText}>{t('explore.noResultsDesc')}</Text>
               <TouchableOpacity
                 style={styles.resetBtn}
                 onPress={() => {
                   setSearchQuery('');
-                  setActiveFilter('Tout');
+                  setActiveFilter('all');
                   setPropertyType(null);
                   loadProperties(1, true);
                 }}
               >
-                <Text style={styles.resetBtnText}>Réinitialiser les filtres</Text>
+                <Text style={styles.resetBtnText}>{t('explore.resetFilters')}</Text>
               </TouchableOpacity>
-              {(searchQuery || activeFilter !== 'Tout' || propertyType) && (
+              {(searchQuery || activeFilter !== 'all' || propertyType) && (
                 <TouchableOpacity style={styles.alertBtn} onPress={handleCreateAlert}>
                   <Ionicons name="notifications-outline" size={16} color="#fff" />
-                  <Text style={styles.alertBtnText}>Créer une alerte pour cette recherche</Text>
+                  <Text style={styles.alertBtnText}>{t('explore.createAlert')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -529,4 +474,3 @@ export default function ExploreScreen() {
     </SafeAreaView>
   );
 }
-

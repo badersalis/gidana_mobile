@@ -25,7 +25,7 @@ export default StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: height * 0.5,
+    height: height * 0.65,
     zIndex: 1,
   },
   skipButton: {
@@ -67,7 +67,7 @@ export default StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.15)',
+    backgroundColor: 'rgba(0,0,0,0.55)',
     borderRadius: 30,
   },
   mainMessageContainer: {
@@ -77,8 +77,9 @@ export default StyleSheet.create({
   },
   mainMessageBadge: {
     alignSelf: 'flex-start',
-    borderRadius: 50,
+    borderRadius: 20,
     overflow: 'hidden',
+    maxWidth: '100%',
   },
   mainMessageBadgeGradient: {
     flexDirection: 'row',
@@ -86,11 +87,15 @@ export default StyleSheet.create({
     gap: 8,
     paddingHorizontal: 14,
     paddingVertical: 8,
+    flexShrink: 1,
   },
   mainMessageText: {
     fontSize: 13,
     fontFamily: 'Poppins-SemiBold',
     letterSpacing: 0.3,
+    color: '#fff',
+    flex: 1,
+    flexShrink: 1,
   },
   textContainer: {
     marginBottom: 24,
@@ -98,14 +103,14 @@ export default StyleSheet.create({
     zIndex: 2,
   },
   title: {
-    fontSize: 34,
+    fontSize: 32,
     fontFamily: 'Poppins-Bold',
     color: '#fff',
-    lineHeight: 42,
+    lineHeight: 40,
     marginBottom: 10,
-    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    textShadowRadius: 4,
   },
   featuresContainer: {
     marginBottom: 24,

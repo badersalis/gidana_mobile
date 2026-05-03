@@ -1,18 +1,27 @@
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import apiClient from '../api/client';
 
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
+  handleNotification: async (): Promise<Notifications.NotificationBehavior> => ({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
   }),
 });
 
+function isExpoGo(): boolean {
+  return Constants.appOwnership === 'expo';
+}
+
 async function registerPushToken() {
   if (Platform.OS === 'web') return;
+
+  // Remote push notifications don't work in Expo Go on Android (SDK 53+).
+  // Skip silently — a development build is required for real push tokens.
+  if (isExpoGo()) return;
 
   const { status: existing } = await Notifications.getPermissionsAsync();
   let status = existing;
@@ -34,7 +43,13 @@ async function registerPushToken() {
   }
 
   try {
-    const { data: token } = await Notifications.getExpoPushTokenAsync();
+    const projectId =
+      Constants.expoConfig?.extra?.eas?.projectId ??
+      (Constants as any).easConfig?.projectId;
+
+    const { data: token } = await Notifications.getExpoPushTokenAsync(
+      projectId ? { projectId } : undefined
+    );
     await apiClient.patch('/users/push-token', { push_token: token });
   } catch (e) {
     console.warn('[Notifications] Failed to register push token:', e);

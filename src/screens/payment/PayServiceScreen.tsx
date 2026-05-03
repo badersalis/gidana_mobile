@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, View } from 'react-native';
 import styles from './PayServiceScreen.styles';
 import { Button, Card, Chip, Divider, RadioButton, Text } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import { transactionApi } from '../../api/transactions';
 import { walletApi } from '../../api/wallet';
 import { Wallet } from '../../types';
@@ -30,6 +31,7 @@ const SERVICES = [
 
 export default function PayServiceScreen() {
   const navigation = useNavigation<any>();
+  const { t } = useTranslation();
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [selectedService, setSelectedService] = useState(SERVICES[0]);
   const [selectedPlan, setSelectedPlan] = useState(SERVICES[0].plans[0]);
@@ -49,7 +51,7 @@ export default function PayServiceScreen() {
 
   async function handlePay() {
     if (!selectedWalletId) {
-      Alert.alert('Erreur', 'Veuillez sélectionner un portefeuille');
+      Alert.alert(t('common.error'), t('payService.noWallet'));
       return;
     }
     setLoading(true);
@@ -60,11 +62,11 @@ export default function PayServiceScreen() {
         plan: selectedPlan.name,
         wallet_id: selectedWalletId,
       });
-      Alert.alert('Paiement effectué', `${selectedService.name} â€” ${selectedPlan.name} a été débité de votre portefeuille.`, [
-        { text: 'OK', onPress: () => navigation.navigate('Transactions') },
+      Alert.alert(t('payService.paymentDone'), t('payService.paymentDoneDesc', { service: selectedService.name, plan: selectedPlan.name }), [
+        { text: t('common.ok'), onPress: () => navigation.navigate('Transactions') },
       ]);
     } catch (e: any) {
-      Alert.alert('Erreur', e.response?.data?.error ?? 'Échec du paiement');
+      Alert.alert(t('common.error'), e.response?.data?.error ?? t('payService.paymentError'));
     } finally {
       setLoading(false);
     }
@@ -72,7 +74,7 @@ export default function PayServiceScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scroll}>
-      <Text variant="titleMedium" style={styles.sectionTitle}>Service</Text>
+      <Text variant="titleMedium" style={styles.sectionTitle}>{t('payService.service')}</Text>
       <View style={styles.serviceRow}>
         {SERVICES.map((s) => (
           <Chip
@@ -90,7 +92,7 @@ export default function PayServiceScreen() {
         ))}
       </View>
 
-      <Text variant="titleMedium" style={styles.sectionTitle}>Plan</Text>
+      <Text variant="titleMedium" style={styles.sectionTitle}>{t('payService.plan')}</Text>
       {selectedService.plans.map((plan) => (
         <Card
           key={plan.name}
@@ -114,30 +116,30 @@ export default function PayServiceScreen() {
 
       <Divider style={styles.divider} />
 
-      <Text variant="titleMedium" style={styles.sectionTitle}>Récapitulatif</Text>
+      <Text variant="titleMedium" style={styles.sectionTitle}>{t('payService.summary')}</Text>
       <Card style={styles.summaryCard}>
         <Card.Content>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Service</Text>
+            <Text style={styles.summaryLabel}>{t('payService.serviceLabel')}</Text>
             <Text>{selectedService.name} - {selectedPlan.name}</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Montant</Text>
+            <Text style={styles.summaryLabel}>{t('payService.amount')}</Text>
             <Text>{formatCurrency(selectedPlan.price, selectedPlan.currency)}</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Frais (10%)</Text>
+            <Text style={styles.summaryLabel}>{t('payService.fee')}</Text>
             <Text>{formatCurrency(serviceFee, selectedPlan.currency)}</Text>
           </View>
           <Divider style={{ marginVertical: 8 }} />
           <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, styles.totalLabel]}>Total</Text>
+            <Text style={[styles.summaryLabel, styles.totalLabel]}>{t('payService.total')}</Text>
             <Text style={styles.totalAmount}>{formatCurrency(total, selectedPlan.currency)}</Text>
           </View>
         </Card.Content>
       </Card>
 
-      <Text variant="titleMedium" style={styles.sectionTitle}>Payer avec</Text>
+      <Text variant="titleMedium" style={styles.sectionTitle}>{t('payService.payWith')}</Text>
       {wallets.map((wallet) => (
         <Card
           key={wallet.id}
@@ -163,7 +165,7 @@ export default function PayServiceScreen() {
         loading={loading} disabled={loading}
         style={styles.payBtn} contentStyle={styles.payContent}
       >
-        Confirmer le paiement
+        {t('payService.confirmPay')}
       </Button>
     </ScrollView>
   );

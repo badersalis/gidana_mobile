@@ -61,11 +61,11 @@ export interface Property {
   description?: string;
   neighborhood: string;
   country: string;
-  property_type: 'Studio' | 'Appartement' | 'Maison';
-  transaction_type: 'À louer' | 'À vendre';
+  property_type: 'Studio' | 'Apartment' | 'House';
+  transaction_type: 'for_rent' | 'for_sale';
   rooms: number;
   bathrooms: number;
-  shower_type?: 'interne' | 'externe';
+  shower_type?: 'internal' | 'external';
   surface?: number;
   has_courtyard: boolean;
   has_water: boolean;

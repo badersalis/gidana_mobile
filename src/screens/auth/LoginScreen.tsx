@@ -3,6 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import React, { useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 import { Button, HelperText, Text, TextInput } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../store/authStore';
 import { COLORS } from '../../utils/theme';
 import styles from './LoginScreen.styles';
@@ -15,28 +16,10 @@ function isValidPhone(v: string) {
   return /^\+[1-9]\d{6,14}$/.test(v);
 }
 
-function validate(identifier: string, password: string): Record<string, string> {
-  const errors: Record<string, string> = {};
-  const id = identifier.trim();
-
-  if (!id) {
-    errors.identifier = 'Ce champ est obligatoire';
-  } else if (id.includes('@') && !isValidEmail(id)) {
-    errors.identifier = 'Adresse email invalide';
-  } else if (id.startsWith('+') && !isValidPhone(id)) {
-    errors.identifier = 'Format téléphone invalide (+XXXXXXXXXXX)';
-  }
-
-  if (!password) {
-    errors.password = 'Ce champ est obligatoire';
-  }
-
-  return errors;
-}
-
 export default function LoginScreen() {
   const navigation = useNavigation<any>();
   const login = useAuthStore((s) => s.login);
+  const { t } = useTranslation();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -44,7 +27,23 @@ export default function LoginScreen() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [serverError, setServerError] = useState('');
 
-  const formErrors = useMemo(() => validate(identifier, password), [identifier, password]);
+  function validate(identifier: string, password: string): Record<string, string> {
+    const errors: Record<string, string> = {};
+    const id = identifier.trim();
+    if (!id) {
+      errors.identifier = t('common.required');
+    } else if (id.includes('@') && !isValidEmail(id)) {
+      errors.identifier = t('auth.invalidEmail');
+    } else if (id.startsWith('+') && !isValidPhone(id)) {
+      errors.identifier = t('auth.invalidPhone');
+    }
+    if (!password) {
+      errors.password = t('common.required');
+    }
+    return errors;
+  }
+
+  const formErrors = useMemo(() => validate(identifier, password), [identifier, password, t]);
   const isValid = Object.keys(formErrors).length === 0;
 
   function touch(field: string) {
@@ -63,7 +62,7 @@ export default function LoginScreen() {
     try {
       await login(identifier.trim(), password);
     } catch (e: any) {
-      setServerError(e.response?.data?.error ?? 'Identifiants incorrects');
+      setServerError(e.response?.data?.error ?? t('auth.wrongCredentials'));
     } finally {
       setLoading(false);
     }
@@ -72,6 +71,11 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        {navigation.canGoBack() && (
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#333" />
+          </TouchableOpacity>
+        )}
         <View style={styles.header}>
           <View style={styles.logoBadge}>
             <Ionicons name="home" size={22} color="#fff" />
@@ -82,7 +86,7 @@ export default function LoginScreen() {
           <View>
             <TextInput
               mode="outlined"
-              label="Email ou téléphone"
+              label={t('auth.emailOrPhone')}
               value={identifier}
               onChangeText={(v) => { setIdentifier(v); setServerError(''); }}
               onBlur={() => touch('identifier')}
@@ -102,7 +106,7 @@ export default function LoginScreen() {
           <View>
             <TextInput
               mode="outlined"
-              label="Mot de passe"
+              label={t('auth.password')}
               value={password}
               onChangeText={(v) => { setPassword(v); setServerError(''); }}
               onBlur={() => touch('password')}
@@ -139,22 +143,21 @@ export default function LoginScreen() {
             contentStyle={styles.buttonContent}
             buttonColor={COLORS.primary}
           >
-            Se connecter
+            {t('auth.login')}
           </Button>
 
           <TouchableOpacity onPress={() => navigation.navigate('Register')} style={styles.registerLink}>
             <Text style={styles.registerText}>
-              Pas de compte ?{' '}
-              <Text style={{ color: COLORS.primary, fontWeight: '700' }}>S'inscrire</Text>
+              {t('auth.noAccount')}{' '}
+              <Text style={{ color: COLORS.primary, fontWeight: '700' }}>{t('auth.register')}</Text>
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => navigation.navigate('Tabs')} style={styles.guestLink}>
-            <Text style={styles.guestText}>Explorer sans compte</Text>
+            <Text style={styles.guestText}>{t('auth.browseWithoutAccount')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
-

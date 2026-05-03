@@ -1,6 +1,7 @@
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import './src/i18n';
 import AppNavigator from './src/navigation/AppNavigator';
 import { theme } from './src/utils/theme';
 

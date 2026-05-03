@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { COLORS } from '../utils/theme';
 
 interface GuestPromptModalProps {
@@ -18,14 +19,15 @@ interface GuestPromptModalProps {
   onSignIn: () => void;
 }
 
-const BENEFITS = [
-  "Publiez vos biens en quelques minutes",
-  "Touchez des milliers d'acheteurs et locataires",
-  "Gérez vos transactions en toute sécurité",
-];
-
 export default function GuestPromptModal({ visible, onClose, onSignUp, onSignIn }: GuestPromptModalProps) {
+  const { t } = useTranslation();
   const translateY = useRef(new Animated.Value(500)).current;
+
+  const BENEFITS = [
+    t('guestModal.benefit1'),
+    t('guestModal.benefit2'),
+    t('guestModal.benefit3'),
+  ];
 
   useEffect(() => {
     if (visible) {
@@ -52,26 +54,20 @@ export default function GuestPromptModal({ visible, onClose, onSignUp, onSignIn 
         <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={onClose} activeOpacity={1} />
 
         <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}>
-          {/* Drag handle */}
           <View style={styles.handle} />
 
-          {/* Close button */}
           <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
             <Ionicons name="close" size={20} color={COLORS.textLight} />
           </TouchableOpacity>
 
-          {/* Header */}
           <View style={styles.header}>
             <View style={styles.iconCircle}>
               <Ionicons name="home" size={32} color={COLORS.primary} />
             </View>
-            <Text style={styles.headerTitle}>Vendez &amp; Louez sur Gidana !</Text>
-            <Text style={styles.headerSubtitle}>
-              Rejoignez des milliers de propriétaires qui font confiance à Gidana
-            </Text>
+            <Text style={styles.headerTitle}>{t('guestModal.title')}</Text>
+            <Text style={styles.headerSubtitle}>{t('guestModal.subtitle')}</Text>
           </View>
 
-          {/* Benefits */}
           <View style={styles.benefits}>
             {BENEFITS.map((benefit, i) => (
               <View key={i} style={styles.benefitRow}>
@@ -83,7 +79,6 @@ export default function GuestPromptModal({ visible, onClose, onSignUp, onSignIn 
             ))}
           </View>
 
-          {/* Sign Up button */}
           <TouchableOpacity onPress={onSignUp} activeOpacity={0.85} style={styles.signUpWrapper}>
             <LinearGradient
               colors={[COLORS.secondary, COLORS.primary]}
@@ -92,14 +87,13 @@ export default function GuestPromptModal({ visible, onClose, onSignUp, onSignIn 
               style={styles.signUpBtn}
             >
               <Ionicons name="person-add-outline" size={20} color="#fff" />
-              <Text style={styles.signUpText}>S'inscrire gratuitement</Text>
+              <Text style={styles.signUpText}>{t('guestModal.signUpFree')}</Text>
             </LinearGradient>
           </TouchableOpacity>
 
-          {/* Sign In link */}
           <TouchableOpacity onPress={onSignIn} style={styles.signInRow}>
-            <Text style={styles.signInLabel}>Vous avez déjà un compte ? </Text>
-            <Text style={styles.signInLink}>Se connecter</Text>
+            <Text style={styles.signInLabel}>{t('guestModal.alreadyAccount')} </Text>
+            <Text style={styles.signInLink}>{t('guestModal.signIn')}</Text>
           </TouchableOpacity>
         </Animated.View>
       </View>

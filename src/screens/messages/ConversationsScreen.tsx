@@ -11,6 +11,7 @@ import {
 import styles from './ConversationsScreen.styles';
 import { ActivityIndicator, Avatar, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { messagingApi } from '../../api/messaging';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useAuthStore } from '../../store/authStore';
@@ -20,6 +21,7 @@ import { COLORS } from '../../utils/theme';
 
 export default function ConversationsScreen() {
   const navigation = useNavigation<any>();
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,12 +58,12 @@ export default function ConversationsScreen() {
     return (
       <SafeAreaView style={styles.center}>
         <Ionicons name="chatbubbles-outline" size={64} color={COLORS.textLight} />
-        <Text style={styles.emptyTitle}>Connectez-vous pour voir vos messages</Text>
+        <Text style={styles.emptyTitle}>{t('conversations.loginPrompt')}</Text>
         <TouchableOpacity
           style={styles.loginBtn}
           onPress={() => navigation.navigate('Login')}
         >
-          <Text style={styles.loginBtnText}>Se connecter</Text>
+          <Text style={styles.loginBtnText}>{t('conversations.signIn')}</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -81,17 +83,15 @@ export default function ConversationsScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Messages</Text>
+        <Text style={styles.headerTitle}>{t('conversations.header')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       {conversations.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="chatbubbles-outline" size={64} color={COLORS.textLight} />
-          <Text style={styles.emptyTitle}>Aucune conversation</Text>
-          <Text style={styles.emptySubtext}>
-            Contactez un propriétaire depuis une annonce pour démarrer une conversation.
-          </Text>
+          <Text style={styles.emptyTitle}>{t('conversations.noConversations')}</Text>
+          <Text style={styles.emptySubtext}>{t('conversations.noConversationsDesc')}</Text>
         </View>
       ) : (
         <FlatList
@@ -118,13 +118,14 @@ export default function ConversationsScreen() {
 
 function ConversationRow({ item, userId }: { item: Conversation; userId: number }) {
   const navigation = useNavigation<any>();
+  const { t } = useTranslation();
   const [imgError, setImgError] = useState(false);
   const other = userId === item.owner_id ? item.tenant : item.owner;
   const name =
-    `${other?.first_name ?? ''} ${other?.last_name ?? ''}`.trim() || 'Utilisateur';
+    `${other?.first_name ?? ''} ${other?.last_name ?? ''}`.trim() || t('conversations.unknownUser');
   const initials = `${other?.first_name?.[0] ?? ''}${other?.last_name?.[0] ?? ''}`.toUpperCase();
   const contact = other?.phone_number ?? other?.email ?? null;
-  const preview = item.last_message?.content ?? item.property?.title ?? 'Nouvelle conversation';
+  const preview = item.last_message?.content ?? item.property?.title ?? t('conversations.newConversation');
   const showImage = !!other?.profile_picture && !imgError;
 
   return (

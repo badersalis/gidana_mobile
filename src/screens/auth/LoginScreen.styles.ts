@@ -4,6 +4,14 @@ import { COLORS } from '../../utils/theme';
 export default StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa' },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: 24 },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
   header: { alignItems: 'center', marginBottom: 32 },
   logoBadge: {
     width: 56,

@@ -9,7 +9,6 @@ import {
   TouchableOpacity,
   View,
   StatusBar,
-  Dimensions,
   Platform,
 } from 'react-native';
 import styles from './AddPropertyScreen.styles';
@@ -17,12 +16,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Text, TextInput, ActivityIndicator } from 'react-native-paper';
 import { geocodingApi, GeoPlace } from '../../api/geocoding';
 import { useLocation } from '../../hooks/useLocation';
+import { useTranslation } from 'react-i18next';
 import { propertyApi } from '../../api/properties';
 import { Property } from '../../types';
 import { COLORS } from '../../utils/theme';
 
-const { width } = Dimensions.get('window');
-const PROPERTY_TYPES = ['Studio', 'Appart', 'Maison'];
+const PROPERTY_TYPES = ['Studio', 'Apartment', 'House'];
 const CURRENCIES = ['XOF', 'EUR', 'USD'];
 
 // Helper function for alerts (works on both mobile and web)
@@ -52,9 +51,11 @@ export default function AddPropertyScreen() {
   const isEditMode = params.mode === 'edit';
   const editProperty = params.property;
 
-  const toSelectorType = (t?: string) =>
-    t === 'Appartement' ? 'Appart' : (t ?? 'Appart');
+  const toPropertyType = (v?: string) => (v === 'Apartment' || v === 'House' ? v : 'Studio');
+  const toTransactionType = (v?: string) => (v === 'for_sale' ? 'for_sale' : 'for_rent');
+  const toShowerType = (v?: string) => (v === 'external' ? 'external' : 'internal');
 
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
 
   // Location & address autocomplete
@@ -66,7 +67,7 @@ export default function AddPropertyScreen() {
   async function handleDetectLocation() {
     const place = await requestLocation();
     if (!place) {
-      showAlert('Erreur', 'Impossible de détecter votre position. Vérifiez les permissions.');
+      showAlert(t('common.error'), t('addProperty.locationError'));
       return;
     }
     if (place.neighborhood) setNeighborhood(place.neighborhood);
@@ -100,8 +101,8 @@ export default function AddPropertyScreen() {
   const [description, setDescription] = useState(editProperty?.description ?? '');
   const [neighborhood, setNeighborhood] = useState(editProperty?.neighborhood ?? '');
   const [country, setCountry] = useState(editProperty?.country ?? '');
-  const [propertyType, setPropertyType] = useState(toSelectorType(editProperty?.property_type));
-  const [transactionType, setTransactionType] = useState(editProperty?.transaction_type ?? 'À louer');
+  const [propertyType, setPropertyType] = useState(toPropertyType(editProperty?.property_type));
+  const [transactionType, setTransactionType] = useState(toTransactionType(editProperty?.transaction_type));
   const [rooms, setRooms] = useState(editProperty?.rooms != null ? String(editProperty.rooms) : '');
   const [bathrooms, setBathrooms] = useState(editProperty?.bathrooms != null ? String(editProperty.bathrooms) : '');
   const [surface, setSurface] = useState(editProperty?.surface != null ? String(editProperty.surface) : '');
@@ -110,7 +111,7 @@ export default function AddPropertyScreen() {
   const [whatsapp, setWhatsapp] = useState(editProperty?.whatsapp_contact ?? '');
   const [phone, setPhone] = useState(editProperty?.phone_contact ?? '');
   const [address, setAddress] = useState(editProperty?.exact_address ?? '');
-  const [showerType, setShowerType] = useState(editProperty?.shower_type ?? 'interne');
+  const [showerType, setShowerType] = useState(toShowerType(editProperty?.shower_type));
   const [hasWater, setHasWater] = useState(editProperty?.has_water ?? false);
   const [hasElectricity, setHasElectricity] = useState(editProperty?.has_electricity ?? false);
   const [hasCourtyard, setHasCourtyard] = useState(editProperty?.has_courtyard ?? false);
@@ -118,19 +119,19 @@ export default function AddPropertyScreen() {
 
   async function pickImages() {
     if (Platform.OS === 'web') {
-      showAlert('Information', 'L\'ajout de photos sera bientôt disponible sur le web');
+      showAlert(t('common.ok'), t('addProperty.photoWebNotAvailable'));
       return;
     }
 
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
+
     if (!permissionResult.granted) {
-      showAlert('Permission refusée', 'Vous devez autoriser l\'accès à la galerie pour ajouter des photos');
+      showAlert(t('addProperty.permissionDenied'), t('addProperty.galleryPermission'));
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsMultipleSelection: true,
       quality: 0.7,
     });
@@ -140,7 +141,7 @@ export default function AddPropertyScreen() {
       const newImages = result.assets.slice(0, remainingSlots).map((a) => a.uri);
       
       if (newImages.length < result.assets.length) {
-        showAlert('Limite atteinte', `Vous ne pouvez ajouter que ${remainingSlots} photo(s) supplémentaire(s)`);
+        showAlert(t('addProperty.photoLimit'), t('addProperty.photoLimitDesc', { count: remainingSlots }));
       }
       
       setImages((prev) => [...prev, ...newImages]);
@@ -148,21 +149,19 @@ export default function AddPropertyScreen() {
   }
 
   async function removeImage(index: number) {
-    const confirmMessage = 'Voulez-vous vraiment supprimer cette image ?';
-    
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      const confirmed = window.confirm(confirmMessage);
+      const confirmed = window.confirm(t('addProperty.removeImageConfirm'));
       if (confirmed) {
         setImages((prev) => prev.filter((_, i) => i !== index));
       }
     } else {
       Alert.alert(
-        'Supprimer l\'image',
-        confirmMessage,
+        t('addProperty.removeImage'),
+        t('addProperty.removeImageConfirm'),
         [
-          { text: 'Annuler', style: 'cancel' },
-          { 
-            text: 'Supprimer', 
+          { text: t('common.cancel'), style: 'cancel' },
+          {
+            text: t('myProperties.delete'),
             style: 'destructive',
             onPress: () => setImages((prev) => prev.filter((_, i) => i !== index))
           }
@@ -173,11 +172,11 @@ export default function AddPropertyScreen() {
 
   async function handleSubmit() {
     if (!title || !neighborhood || !country || !rooms || !bathrooms || !price || !whatsapp) {
-      showAlert('Erreur', 'Veuillez remplir tous les champs obligatoires (WhatsApp inclus)');
+      showAlert(t('common.error'), t('addProperty.requiredFields'));
       return;
     }
     if (!isEditMode && images.length < 3) {
-      showAlert('Erreur', `Minimum 3 photos requises (vous en avez ${images.length})`);
+      showAlert(t('common.error'), t('addProperty.minPhotos', { count: images.length }));
       return;
     }
 
@@ -187,7 +186,7 @@ export default function AddPropertyScreen() {
     formData.append('description', description);
     formData.append('neighborhood', neighborhood);
     formData.append('country', country);
-    formData.append('property_type', propertyType === 'Appart' ? 'Appartement' : propertyType);
+    formData.append('property_type', propertyType);
     formData.append('transaction_type', transactionType);
     formData.append('rooms', rooms);
     formData.append('bathrooms', bathrooms);
@@ -214,13 +213,13 @@ export default function AddPropertyScreen() {
     try {
       if (isEditMode && params.propertyId) {
         await propertyApi.update(params.propertyId, formData);
-        showAlert('Succès', 'Votre annonce a été mise à jour', () => navigation.goBack());
+        showAlert(t('addProperty.updateSuccess'), t('addProperty.updateSuccessDesc'), () => navigation.goBack());
       } else {
         await propertyApi.create(formData);
         navigation.navigate('Home', { added: Date.now() });
       }
     } catch (e: any) {
-      showAlert('Erreur', e.response?.data?.error ?? (isEditMode ? 'Erreur lors de la modification' : 'Erreur lors de l\'ajout'));
+      showAlert(t('common.error'), e.response?.data?.error ?? (isEditMode ? t('addProperty.updateError') : t('addProperty.createError')));
     } finally {
       setLoading(false);
     }
@@ -234,7 +233,7 @@ export default function AddPropertyScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{isEditMode ? 'Modifier l\'annonce' : 'Ajouter une propriété'}</Text>
+        <Text style={styles.headerTitle}>{isEditMode ? t('addProperty.titleEdit') : t('addProperty.titleAdd')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -246,10 +245,10 @@ export default function AddPropertyScreen() {
         {/* Photos Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Photos</Text>
+            <Text style={styles.sectionTitle}>{t('addProperty.photos')}</Text>
             <Text style={styles.sectionSubtitle}>{images.length}/10</Text>
           </View>
-          <Text style={styles.sectionDescription}>Ajoutez au moins 3 photos</Text>
+          <Text style={styles.sectionDescription}>{t('addProperty.atLeast3Photos')}</Text>
           
           <View style={styles.imageGrid}>
             {images.map((uri, idx) => (
@@ -270,7 +269,7 @@ export default function AddPropertyScreen() {
             {images.length < 10 && (
               <TouchableOpacity style={styles.addImageBtn} onPress={pickImages} activeOpacity={0.7}>
                 <Ionicons name="camera-outline" size={28} color={COLORS.primary} />
-                <Text style={styles.addImageText}>Ajouter</Text>
+                <Text style={styles.addImageText}>{t('addProperty.addPhoto')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -278,11 +277,11 @@ export default function AddPropertyScreen() {
 
         {/* Basic Info */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Informations générales</Text>
+          <Text style={styles.sectionTitle}>{t('addProperty.generalInfo')}</Text>
           
           <TextInput 
             mode="outlined" 
-            label="Titre *" 
+            label={t('addProperty.titleLabel')}
             value={title} 
             onChangeText={setTitle} 
             style={styles.input}
@@ -292,7 +291,7 @@ export default function AddPropertyScreen() {
           
           <TextInput 
             mode="outlined" 
-            label="Description" 
+            label={t('addProperty.descriptionLabel')}
             value={description} 
             onChangeText={setDescription} 
             multiline 
@@ -302,7 +301,7 @@ export default function AddPropertyScreen() {
             activeOutlineColor={COLORS.primary}
           />
 
-          <Text style={styles.label}>Type de bien</Text>
+          <Text style={styles.label}>{t('addProperty.propertyType')}</Text>
           <View style={styles.buttonGroup}>
             {PROPERTY_TYPES.map((type) => (
               <TouchableOpacity
@@ -311,28 +310,28 @@ export default function AddPropertyScreen() {
                 onPress={() => setPropertyType(type)}
               >
                 <Text style={[styles.optionText, propertyType === type && styles.optionTextActive]}>
-                  {type}
+                  {t(`propertyTypes.${type}`)}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
 
-          <Text style={styles.label}>Type de transaction</Text>
+          <Text style={styles.label}>{t('addProperty.transactionType')}</Text>
           <View style={styles.buttonGroup}>
             <TouchableOpacity
-              style={[styles.optionButton, transactionType === 'À louer' && styles.optionButtonActive]}
-              onPress={() => setTransactionType('À louer')}
+              style={[styles.optionButton, transactionType === 'for_rent' && styles.optionButtonActive]}
+              onPress={() => setTransactionType('for_rent')}
             >
-              <Text style={[styles.optionText, transactionType === 'À louer' && styles.optionTextActive]}>
-                Location
+              <Text style={[styles.optionText, transactionType === 'for_rent' && styles.optionTextActive]}>
+                {t('addProperty.forRent')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.optionButton, transactionType === 'À vendre' && styles.optionButtonActive]}
-              onPress={() => setTransactionType('À vendre')}
+              style={[styles.optionButton, transactionType === 'for_sale' && styles.optionButtonActive]}
+              onPress={() => setTransactionType('for_sale')}
             >
-              <Text style={[styles.optionText, transactionType === 'À vendre' && styles.optionTextActive]}>
-                Vente
+              <Text style={[styles.optionText, transactionType === 'for_sale' && styles.optionTextActive]}>
+                {t('addProperty.forSale')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -341,7 +340,7 @@ export default function AddPropertyScreen() {
         {/* Location */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Localisation</Text>
+            <Text style={styles.sectionTitle}>{t('addProperty.locationSection')}</Text>
             <TouchableOpacity
               style={styles.detectBtn}
               onPress={handleDetectLocation}
@@ -354,14 +353,14 @@ export default function AddPropertyScreen() {
                 <Ionicons name="navigate" size={15} color={COLORS.primary} />
               )}
               <Text style={styles.detectBtnText}>
-                {locationLoading ? 'Détection…' : 'Détecter ma position'}
+                {locationLoading ? t('addProperty.detecting') : t('addProperty.detectLocation')}
               </Text>
             </TouchableOpacity>
           </View>
 
           <TextInput
             mode="outlined"
-            label="Quartier *"
+            label={t('addProperty.neighborhood')}
             value={neighborhood}
             onChangeText={setNeighborhood}
             style={styles.input}
@@ -371,7 +370,7 @@ export default function AddPropertyScreen() {
 
           <TextInput
             mode="outlined"
-            label="Pays *"
+            label={t('addProperty.country')}
             value={country}
             onChangeText={setCountry}
             style={styles.input}
@@ -383,7 +382,7 @@ export default function AddPropertyScreen() {
           <View style={styles.autocompleteWrapper}>
             <TextInput
               mode="outlined"
-              label="Adresse exacte (optionnel)"
+              label={t('addProperty.exactAddress')}
               value={address}
               onChangeText={onAddressChange}
               onBlur={() => setTimeout(() => setShowAddressSuggestions(false), 200)}
@@ -417,12 +416,12 @@ export default function AddPropertyScreen() {
 
         {/* Features */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Caractéristiques</Text>
+          <Text style={styles.sectionTitle}>{t('addProperty.features')}</Text>
           
           <View style={styles.row}>
             <TextInput 
               mode="outlined" 
-              label="Pièces *" 
+              label={t('addProperty.rooms')}
               value={rooms} 
               onChangeText={setRooms} 
               keyboardType="numeric" 
@@ -432,7 +431,7 @@ export default function AddPropertyScreen() {
             />
             <TextInput 
               mode="outlined" 
-              label="Salle de bain *" 
+              label={t('addProperty.bathrooms')}
               value={bathrooms} 
               onChangeText={setBathrooms} 
               keyboardType="numeric" 
@@ -444,7 +443,7 @@ export default function AddPropertyScreen() {
           
           <TextInput 
             mode="outlined" 
-            label="Surface (mÂ²)" 
+            label={t('addProperty.surface')}
             value={surface} 
             onChangeText={setSurface} 
             keyboardType="numeric" 
@@ -453,22 +452,22 @@ export default function AddPropertyScreen() {
             activeOutlineColor={COLORS.primary}
           />
 
-          <Text style={styles.label}>Type de douche</Text>
+          <Text style={styles.label}>{t('addProperty.showerType')}</Text>
           <View style={styles.buttonGroup}>
             <TouchableOpacity
-              style={[styles.optionButton, showerType === 'interne' && styles.optionButtonActive]}
-              onPress={() => setShowerType('interne')}
+              style={[styles.optionButton, showerType === 'internal' && styles.optionButtonActive]}
+              onPress={() => setShowerType('internal')}
             >
-              <Text style={[styles.optionText, showerType === 'interne' && styles.optionTextActive]}>
-                Interne
+              <Text style={[styles.optionText, showerType === 'internal' && styles.optionTextActive]}>
+                {t('addProperty.internal')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.optionButton, showerType === 'externe' && styles.optionButtonActive]}
-              onPress={() => setShowerType('externe')}
+              style={[styles.optionButton, showerType === 'external' && styles.optionButtonActive]}
+              onPress={() => setShowerType('external')}
             >
-              <Text style={[styles.optionText, showerType === 'externe' && styles.optionTextActive]}>
-                Externe
+              <Text style={[styles.optionText, showerType === 'external' && styles.optionTextActive]}>
+                {t('addProperty.external')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -478,33 +477,33 @@ export default function AddPropertyScreen() {
               <View style={[styles.checkbox, hasWater && styles.checkboxChecked]}>
                 {hasWater && <Ionicons name="checkmark" size={14} color="#fff" />}
               </View>
-              <Text style={styles.checkboxLabel}>Eau courante</Text>
+              <Text style={styles.checkboxLabel}>{t('addProperty.runningWater')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.checkboxItem} onPress={() => setHasElectricity(!hasElectricity)}>
               <View style={[styles.checkbox, hasElectricity && styles.checkboxChecked]}>
                 {hasElectricity && <Ionicons name="checkmark" size={14} color="#fff" />}
               </View>
-              <Text style={styles.checkboxLabel}>Électricité</Text>
+              <Text style={styles.checkboxLabel}>{t('addProperty.electricity')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.checkboxItem} onPress={() => setHasCourtyard(!hasCourtyard)}>
               <View style={[styles.checkbox, hasCourtyard && styles.checkboxChecked]}>
                 {hasCourtyard && <Ionicons name="checkmark" size={14} color="#fff" />}
               </View>
-              <Text style={styles.checkboxLabel}>Cour</Text>
+              <Text style={styles.checkboxLabel}>{t('addProperty.courtyard')}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Price & Contact */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Prix et contact</Text>
+          <Text style={styles.sectionTitle}>{t('addProperty.priceContact')}</Text>
           
           <View style={styles.priceContainer}>
             <TextInput 
               mode="outlined" 
-              label="Prix *" 
+              label={t('addProperty.price')}
               value={price} 
               onChangeText={setPrice} 
               keyboardType="numeric" 
@@ -527,7 +526,7 @@ export default function AddPropertyScreen() {
 
           <TextInput
             mode="outlined"
-            label="WhatsApp *"
+            label={t('addProperty.whatsapp')}
             value={whatsapp}
             onChangeText={setWhatsapp} 
             keyboardType="phone-pad" 
@@ -538,7 +537,7 @@ export default function AddPropertyScreen() {
           
           <TextInput 
             mode="outlined" 
-            label="Téléphone" 
+            label={t('addProperty.phone')}
             value={phone} 
             onChangeText={setPhone} 
             keyboardType="phone-pad" 
@@ -559,8 +558,8 @@ export default function AddPropertyScreen() {
           labelStyle={styles.submitLabel}
         >
           {loading
-            ? (isEditMode ? 'Mise à jour...' : 'Publication en cours...')
-            : (isEditMode ? 'Enregistrer les modifications' : 'Continuer')}
+            ? (isEditMode ? t('addProperty.updatingLoading') : t('addProperty.publishingLoading'))
+            : (isEditMode ? t('addProperty.submitEdit') : t('addProperty.submitAdd'))}
         </Button>
         
         <View style={{ height: 60 }} />

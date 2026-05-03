@@ -4,7 +4,6 @@ import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/nativ
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from '../../hooks/useLocation';
 import {
-  Dimensions,
   FlatList,
   Image,
   ImageBackground,
@@ -18,8 +17,11 @@ import {
 import styles from './HomeScreen.styles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityIndicator, Text, Avatar, Snackbar } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import GuestPromptModal from '../../components/GuestPromptModal';
+import OfflineBanner from '../../components/OfflineBanner';
 import PropertyCard from '../../components/PropertyCard';
+import PropertyCardSkeleton from '../../components/PropertyCardSkeleton';
 import { favoritesApi } from '../../api/favorites';
 import { propertyApi } from '../../api/properties';
 import { useAuthStore } from '../../store/authStore';
@@ -28,17 +30,10 @@ import { formatCurrency } from '../../utils/currency';
 import { Property } from '../../types';
 import { COLORS } from '../../utils/theme';
 
-const { width, height } = Dimensions.get('window');
-
-const CATEGORIES = [
-  { label: 'Studios', type: 'Studio', image: require('../../../assets/studio.jpg'), icon: 'business-outline' },
-  { label: 'Apparts', type: 'Appartement', image: require('../../../assets/appart.jpg'), icon: 'home-outline' },
-  { label: 'Maisons', type: 'Maison', image: require('../../../assets/home.jpg'), icon: 'house-outline' },
-];
-
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const { t } = useTranslation();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
   const [featured, setFeatured] = useState<Property[]>([]);
@@ -51,6 +46,12 @@ export default function HomeScreen() {
   const guestTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const guestIntervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const { place: userPlace, loading: locationLoading, requestLocation } = useLocation();
+
+  const CATEGORIES = [
+    { label: t('home.studios'), type: 'Studio', image: require('../../../assets/studio.jpg'), icon: 'business-outline' },
+    { label: t('home.apartments'), type: 'Appartement', image: require('../../../assets/appart.jpg'), icon: 'home-outline' },
+    { label: t('home.houses'), type: 'Maison', image: require('../../../assets/home.jpg'), icon: 'home-outline' },
+  ];
 
   useEffect(() => {
     requestLocation();
@@ -113,8 +114,7 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-      
-      {/* Custom Header with Logo */}
+
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <Text style={styles.logo}>Gidana</Text>
@@ -163,12 +163,14 @@ export default function HomeScreen() {
                 style={styles.loginBtn}
                 onPress={() => navigation.navigate('Login')}
               >
-                <Text style={styles.loginBtnText}>Connexion</Text>
+                <Text style={styles.loginBtnText}>{t('home.login')}</Text>
               </TouchableOpacity>
             )}
           </View>
         </View>
       </View>
+
+      <OfflineBanner onRetry={onRefresh} />
 
       <ScrollView
         style={styles.container}
@@ -176,7 +178,6 @@ export default function HomeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* â”€â”€ Modern Hero Section â”€â”€ */}
         <View style={styles.heroSection}>
           <ImageBackground
             source={require('../../../assets/hero-img.jpeg')}
@@ -189,7 +190,6 @@ export default function HomeScreen() {
               style={styles.heroOverlay}
             >
               <View style={styles.heroContent}>
-                {/* Location badge */}
                 <TouchableOpacity style={styles.locationBadge} onPress={requestLocation} activeOpacity={0.7}>
                   <Ionicons name="location-sharp" size={14} color="rgba(255,255,255,0.9)" />
                   {locationLoading ? (
@@ -198,19 +198,17 @@ export default function HomeScreen() {
                     <Text style={styles.locationBadgeText}>
                       {userPlace
                         ? [userPlace.city, userPlace.country].filter(Boolean).join(', ')
-                        : 'Détecter ma position'}
+                        : t('home.detectLocation')}
                     </Text>
                   )}
                 </TouchableOpacity>
 
                 <Text style={styles.heroTitle}>
-                  Trouvez votre{'\n'}
-                  <Text style={styles.heroTitleHighlight}>logement idéal</Text>
+                  {t('home.heroTitle')}
+                  <Text style={styles.heroTitleHighlight}>{t('home.heroTitleHighlight')}</Text>
                 </Text>
 
-                <Text style={styles.heroSubtitle}>
-                  Découvrez des studios, appartements et maisons à louer
-                </Text>
+                <Text style={styles.heroSubtitle}>{t('home.heroSubtitle')}</Text>
 
                 <TouchableOpacity
                   style={styles.searchBar}
@@ -219,8 +217,8 @@ export default function HomeScreen() {
                   <Ionicons name="search-outline" size={20} color="#999" />
                   <Text style={styles.searchPlaceholder}>
                     {userPlace?.city
-                      ? `Rechercher à ${userPlace.city}...`
-                      : 'Rechercher une propriété...'}
+                      ? t('home.searchInCity', { city: userPlace.city })
+                      : t('home.searchProperty')}
                   </Text>
                   <View style={styles.searchButton}>
                     <Ionicons name="options-outline" size={20} color="#fff" />
@@ -231,18 +229,17 @@ export default function HomeScreen() {
           </ImageBackground>
         </View>
 
-        {/* â”€â”€ Categories Section â”€â”€ */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View>
-              <Text style={styles.sectionSubtitle}>Catégories</Text>
-              <Text style={styles.sectionTitle}>Explorez par type</Text>
+              <Text style={styles.sectionSubtitle}>{t('home.categoriesSubtitle')}</Text>
+              <Text style={styles.sectionTitle}>{t('home.categoriesTitle')}</Text>
             </View>
             <TouchableOpacity
               style={styles.viewAllBtn}
               onPress={() => navigation.navigate('Explore')}
             >
-              <Text style={styles.viewAllText}>Tout voir</Text>
+              <Text style={styles.viewAllText}>{t('home.viewAll')}</Text>
               <Ionicons name="arrow-forward" size={14} color={COLORS.primary} />
             </TouchableOpacity>
           </View>
@@ -252,18 +249,14 @@ export default function HomeScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoriesContainer}
           >
-            {CATEGORIES.map((item, index) => (
+            {CATEGORIES.map((item) => (
               <TouchableOpacity
                 key={item.type}
                 style={styles.catCard}
                 onPress={() => navigation.navigate('Explore', { propertyType: item.type })}
                 activeOpacity={0.88}
               >
-                <Image
-                  source={item.image}
-                  style={styles.catImage}
-                  resizeMode="cover"
-                />
+                <Image source={item.image} style={styles.catImage} resizeMode="cover" />
                 <LinearGradient
                   colors={['transparent', 'rgba(0,0,0,0.7)']}
                   style={styles.catOverlay}
@@ -276,37 +269,38 @@ export default function HomeScreen() {
           </ScrollView>
         </View>
 
-        {/* â”€â”€ Featured Properties â”€â”€ */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View>
-              <Text style={styles.sectionSubtitle}>Recommandations</Text>
+              <Text style={styles.sectionSubtitle}>{t('home.recommendations')}</Text>
             </View>
             <TouchableOpacity
               onPress={() => navigation.navigate('Explore')}
               style={styles.viewAllBtn}
             >
-              <Text style={styles.viewAllText}>Voir tout</Text>
+              <Text style={styles.viewAllText}>{t('home.seeAll')}</Text>
               <Ionicons name="arrow-forward" size={14} color={COLORS.primary} />
             </TouchableOpacity>
           </View>
 
           {loading ? (
-            <ActivityIndicator style={styles.loader} color={COLORS.primary} />
+            <>
+              <PropertyCardSkeleton />
+              <PropertyCardSkeleton />
+              <PropertyCardSkeleton />
+            </>
           ) : featured.length === 0 ? (
             <View style={styles.emptyState}>
               <View style={styles.emptyIconContainer}>
                 <Ionicons name="home-outline" size={48} color={COLORS.primary} />
               </View>
-              <Text style={styles.emptyTitle}>Aucune propriété disponible</Text>
-              <Text style={styles.emptyText}>
-                Revenez bientôt, de nouvelles propriétés seront ajoutées.
-              </Text>
+              <Text style={styles.emptyTitle}>{t('home.noProperties')}</Text>
+              <Text style={styles.emptyText}>{t('home.noPropertiesDesc')}</Text>
               <TouchableOpacity
                 style={styles.emptyBtn}
                 onPress={() => navigation.navigate('Explore')}
               >
-                <Text style={styles.emptyBtnText}>Explorer maintenant</Text>
+                <Text style={styles.emptyBtnText}>{t('home.exploreNow')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -335,7 +329,6 @@ export default function HomeScreen() {
         onSignIn={() => { setShowGuestModal(false); navigation.navigate('Login'); }}
       />
 
-      {/* Property Alert Notifications Modal */}
       <Modal
         visible={notifModalVisible}
         transparent
@@ -349,11 +342,11 @@ export default function HomeScreen() {
         >
           <View style={styles.notifSheet}>
             <View style={styles.notifHandle} />
-            <Text style={styles.notifTitle}>Nouvelles propriétés</Text>
+            <Text style={styles.notifTitle}>{t('home.newProperties')}</Text>
             {notifications.length === 0 ? (
               <View style={styles.notifEmpty}>
                 <Ionicons name="notifications-off-outline" size={40} color="#ccc" />
-                <Text style={styles.notifEmptyText}>Aucune notification pour l'instant</Text>
+                <Text style={styles.notifEmptyText}>{t('home.noNotifications')}</Text>
               </View>
             ) : (
               <FlatList
@@ -377,7 +370,7 @@ export default function HomeScreen() {
                       </Text>
                       <Text style={styles.notifItemPrice}>
                         {formatCurrency(item.price, item.currency)}
-                        {item.transaction_type === 'À louer' ? '/mois' : ''}
+                        {item.transaction_type === 'À louer' ? t('home.perMonth') : ''}
                       </Text>
                     </View>
                     <Ionicons name="chevron-forward" size={18} color="#ccc" />
@@ -394,11 +387,10 @@ export default function HomeScreen() {
         onDismiss={() => setSnackVisible(false)}
         duration={4000}
         style={styles.snackbar}
-        action={{ label: 'OK', onPress: () => setSnackVisible(false) }}
+        action={{ label: t('common.ok'), onPress: () => setSnackVisible(false) }}
       >
-        Propriété ajoutée avec succès !
+        {t('home.propertyAdded')}
       </Snackbar>
     </SafeAreaView>
   );
 }
-

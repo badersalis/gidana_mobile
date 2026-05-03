@@ -43,6 +43,13 @@ export default StyleSheet.create({
     position: 'relative',
     backgroundColor: '#000',
   },
+  statusBarGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 2,
+  },
   mainImage: {
     width,
     height: height * 0.45,

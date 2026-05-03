@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { FlatList, RefreshControl, TouchableOpacity, View, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityIndicator, Text } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import PropertyCard from '../../components/PropertyCard';
 import { favoritesApi } from '../../api/favorites';
 import { useAuthStore } from '../../store/authStore';
@@ -13,6 +14,7 @@ import styles from './FavoritesScreen.styles';
 
 export default function FavoritesScreen() {
   const navigation = useNavigation<any>();
+  const { t } = useTranslation();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [favorites, setFavorites] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,21 +55,21 @@ export default function FavoritesScreen() {
           <View style={styles.iconContainer}>
             <Ionicons name="heart-outline" size={64} color={COLORS.primary} />
           </View>
-          <Text style={styles.emptyTitle}>Connectez-vous pour voir vos favoris</Text>
-          <Text style={styles.emptyText}>Sauvegardez les propriétés qui vous intéressent</Text>
+          <Text style={styles.emptyTitle}>{t('favorites.loginPrompt')}</Text>
+          <Text style={styles.emptyText}>{t('favorites.loginPromptDesc')}</Text>
           <TouchableOpacity
             style={styles.primaryBtn}
             onPress={() => navigation.navigate('Login')}
             activeOpacity={0.85}
           >
-            <Text style={styles.primaryBtnText}>Se connecter</Text>
+            <Text style={styles.primaryBtnText}>{t('favorites.signIn')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.outlineBtn}
             onPress={() => navigation.navigate('Register')}
             activeOpacity={0.85}
           >
-            <Text style={styles.outlineBtnText}>Créer un compte</Text>
+            <Text style={styles.outlineBtnText}>{t('favorites.createAccount')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -80,7 +82,7 @@ export default function FavoritesScreen() {
         <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loaderText}>Chargement des favoris...</Text>
+          <Text style={styles.loaderText}>{t('favorites.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -93,7 +95,7 @@ export default function FavoritesScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mes favoris</Text>
+        <Text style={styles.headerTitle}>{t('favorites.title')}</Text>
         <View style={{ width: 40 }} />
       </View>
       <FlatList
@@ -115,16 +117,14 @@ export default function FavoritesScreen() {
             <View style={styles.iconContainer}>
               <Ionicons name="heart-outline" size={64} color={COLORS.primary} />
             </View>
-            <Text style={styles.emptyTitle}>Aucun favori</Text>
-            <Text style={styles.emptyText}>
-              Enregistrez des propriétés pour les retrouver ici
-            </Text>
+            <Text style={styles.emptyTitle}>{t('favorites.noFavorites')}</Text>
+            <Text style={styles.emptyText}>{t('favorites.noFavoritesDesc')}</Text>
             <TouchableOpacity
               style={styles.outlineBtn}
               onPress={() => navigation.navigate('Explore')}
               activeOpacity={0.85}
             >
-              <Text style={styles.outlineBtnText}>Explorer</Text>
+              <Text style={styles.outlineBtnText}>{t('favorites.explore')}</Text>
             </TouchableOpacity>
           </View>
         }
