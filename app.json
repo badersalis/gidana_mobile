@@ -52,7 +52,7 @@
       ],
       "expo-localization"
     ],
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "extra": {
       "eas": {
         "projectId": "3c550835-c0c3-4955-a5c1-9f683337db84"
