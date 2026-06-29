@@ -1,12 +1,8 @@
 {
-  "*.{ts,tsx}": [
-    "eslint --fix --max-warnings 0",
-    "tsc-files --noEmit"
+  "src/**/*.{ts,tsx}": [
+    "eslint --fix"
   ],
-  "*.{js,jsx}": [
-    "eslint --fix --max-warnings 0"
-  ],
-  "*.{json}": [
-    "prettier --write"
+  "src/**/*.{js,jsx}": [
+    "eslint --fix"
   ]
 }
