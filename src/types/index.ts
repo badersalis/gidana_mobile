@@ -90,7 +90,7 @@ export interface Property {
 export interface Wallet {
   id: number;
   user_id: number;
-  provider: 'Nita' | 'MPesa' | 'Visa' | 'Mastercard' | 'PayPal';
+  provider: 'Nita' | 'MPesa' | 'OrangeMoney' | 'Moov' | 'Visa' | 'Mastercard' | 'PayPal';
   nature?: string;
   balance: number;
   currency: string;
@@ -98,6 +98,18 @@ export interface Wallet {
   masked_phone?: string;
   masked_email?: string;
   masked_card?: string;
+}
+
+export interface ContactUnlock {
+  id: number;
+  property_id: number;
+  user_id: number;
+  phone_number: string;
+  whatsapp_number?: string;
+  unlocked_at: string;
+  amount: number;
+  currency: string;
+  transaction_id?: number;
 }
 
 export type TransactionStatus = 'done' | 'failed' | 'ongoing';
