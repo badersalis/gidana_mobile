@@ -351,7 +351,9 @@
     "noConversations": "Aucune conversation",
     "noConversationsDesc": "Contactez un propriétaire depuis une annonce pour démarrer une conversation.",
     "unknownUser": "Utilisateur",
-    "newConversation": "Nouvelle conversation"
+    "newConversation": "Nouvelle conversation",
+    "upgradeBanner": "Passez à un plan supérieur pour répondre et suivre vos messages non lus",
+    "upgradeBtn": "Mettre à niveau"
   },
   "chat": {
     "sendError": "Impossible d'envoyer le message",

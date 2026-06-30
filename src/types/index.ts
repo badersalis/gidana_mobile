@@ -40,6 +40,7 @@ export interface Conversation {
   tenant?: User;
   last_message?: Message;
   messages?: Message[];
+  unread_count?: number;
 }
 
 export interface PropertyImage {
