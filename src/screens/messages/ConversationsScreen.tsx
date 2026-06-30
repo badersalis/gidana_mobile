@@ -132,7 +132,14 @@ function ConversationRow({ item, userId }: { item: Conversation; userId: number 
     <TouchableOpacity
       style={styles.row}
       activeOpacity={0.7}
-      onPress={() => navigation.navigate('Chat', { conversationId: item.id, name })}
+      onPress={() =>
+        navigation.navigate('Chat', {
+          conversationId: item.id,
+          name,
+          otherUserAvatar: other?.profile_picture ?? undefined,
+          otherUserInitials: initials || undefined,
+        })
+      }
     >
       {showImage ? (
         <Image

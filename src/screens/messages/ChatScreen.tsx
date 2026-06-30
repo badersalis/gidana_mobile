@@ -3,6 +3,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Platform,
   TextInput,
@@ -20,10 +21,21 @@ import { useAuthStore } from '../../store/authStore';
 import { Message } from '../../types';
 import { COLORS } from '../../utils/theme';
 
+const NAME_LIMIT = 22;
+function truncateName(n: string) {
+  return n.length > NAME_LIMIT ? n.substring(0, NAME_LIMIT).trimEnd() + '…' : n;
+}
+
 export default function ChatScreen() {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
-  const { conversationId, name } = route.params as { conversationId: number; name: string };
+  const { conversationId, name, otherUserAvatar, otherUserInitials } = route.params as {
+    conversationId: number;
+    name: string;
+    otherUserAvatar?: string;
+    otherUserInitials?: string;
+  };
+  const displayName = truncateName(name);
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
 
@@ -74,7 +86,7 @@ export default function ChatScreen() {
         if (exists) return prev;
         return [data.data, ...prev];
       });
-    } catch (e) {
+    } catch {
       setText(content);
       Alert.alert(t('common.error'), t('chat.sendError'));
     } finally {
@@ -114,7 +126,7 @@ export default function ChatScreen() {
           labelStyle={{ fontFamily: 'Poppins-SemiBold', color: '#fff', fontSize: 14 }}
         />
         <Text style={styles.headerName} numberOfLines={1}>
-          {name}
+          {displayName}
         </Text>
       </View>
 
@@ -134,6 +146,8 @@ export default function ChatScreen() {
             <MessageBubble
               msg={item}
               isMine={item.sender_id === user?.id}
+              otherUserAvatar={otherUserAvatar}
+              otherUserInitials={otherUserInitials}
               onLongPress={() => {
                 if (item.sender_id === user?.id) handleDeleteMessage(item.id);
               }}
@@ -185,21 +199,32 @@ function MessageBubble({
   msg,
   isMine,
   onLongPress,
+  otherUserAvatar,
+  otherUserInitials,
 }: {
   msg: Message;
   isMine: boolean;
   onLongPress: () => void;
+  otherUserAvatar?: string;
+  otherUserInitials?: string;
 }) {
+  const [imgError, setImgError] = useState(false);
   const time = new Date(msg.created_at).toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
   });
 
-  return (
+  const showImage = !!otherUserAvatar && !imgError;
+
+  const bubble = (
     <TouchableOpacity
       activeOpacity={0.8}
       onLongPress={onLongPress}
-      style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleOther]}
+      style={[
+        styles.bubble,
+        isMine ? styles.bubbleMine : styles.bubbleOther,
+        !isMine && styles.bubbleInRow,
+      ]}
     >
       <Text style={[styles.bubbleText, isMine ? styles.bubbleTextMine : styles.bubbleTextOther]}>
         {msg.content}
@@ -209,5 +234,30 @@ function MessageBubble({
       </Text>
     </TouchableOpacity>
   );
-}
 
+  if (isMine) return bubble;
+
+  return (
+    <View style={styles.bubbleRow}>
+      {showImage ? (
+        <Image
+          source={{ uri: otherUserAvatar }}
+          style={styles.bubbleAvatar}
+          onError={() => setImgError(true)}
+        />
+      ) : otherUserInitials ? (
+        <Avatar.Text
+          size={28}
+          label={otherUserInitials}
+          style={styles.bubbleAvatarInitials}
+          labelStyle={{ fontFamily: 'Poppins-SemiBold', fontSize: 10, color: '#fff' }}
+        />
+      ) : (
+        <View style={styles.bubbleAvatarIcon}>
+          <Ionicons name="person" size={14} color={COLORS.primary} />
+        </View>
+      )}
+      {bubble}
+    </View>
+  );
+}
