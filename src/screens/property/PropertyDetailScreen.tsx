@@ -18,7 +18,6 @@ import { StatusBar } from 'expo-status-bar';
 import styles from './PropertyDetailScreen.styles';
 import { ActivityIndicator, Button, Chip, Divider, Text, TextInput } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
-import ContactUnlockModal from '../../components/ContactUnlockModal';
 import StarRating from '../../components/StarRating';
 import { favoritesApi } from '../../api/favorites';
 import { messagingApi } from '../../api/messaging';
@@ -45,7 +44,6 @@ export default function PropertyDetailScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [contactingOwner, setContactingOwner] = useState(false);
-  const [unlockModalVisible, setUnlockModalVisible] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [ownerImgError, setOwnerImgError] = useState(false);
   const [reviewImgErrors, setReviewImgErrors] = useState<Record<number, boolean>>({});
@@ -129,7 +127,15 @@ export default function PropertyDetailScreen() {
       const conv = data.data;
       const ownerName =
         `${property.user?.first_name ?? ''} ${property.user?.last_name ?? ''}`.trim() || t('propertyDetail.owner');
-      navigation.navigate('Chat', { conversationId: conv.id, name: ownerName });
+      const ownerInitials = `${property.user?.first_name?.[0] ?? ''}${property.user?.last_name?.[0] ?? ''}`.toUpperCase() || undefined;
+      const autoMessage = t('propertyDetail.autoMessage', { title: property.title });
+      navigation.navigate('Chat', {
+        conversationId: conv.id,
+        name: ownerName,
+        autoMessage,
+        otherUserAvatar: property.user?.profile_picture ?? undefined,
+        otherUserInitials: ownerInitials,
+      });
     } catch (e: any) {
       Alert.alert(t('common.error'), e.response?.data?.error ?? t('propertyDetail.conversationError'));
     } finally {
@@ -418,12 +424,6 @@ export default function PropertyDetailScreen() {
                     <Text style={styles.verifiedText}>{t('propertyDetail.verified')}</Text>
                   </View>
                 </View>
-                {!isOwner && ownerUser?.email ? (
-                  <Text style={styles.ownerContact}>{ownerUser.email}</Text>
-                ) : null}
-                {!isOwner && ownerUser?.phone_number ? (
-                  <Text style={styles.ownerContact}>{ownerUser.phone_number}</Text>
-                ) : null}
                 <Text style={styles.ownerSince}>{t('propertyDetail.memberSince', { year: getMemberSinceYear() })}</Text>
               </View>
             </View>
@@ -494,93 +494,20 @@ export default function PropertyDetailScreen() {
 
           <Divider style={styles.divider} />
 
-          {!isOwner && (() => {
-            const phone = property.phone_contact;
-            const whatsapp = property.whatsapp_contact;
-            const isUnlocked = !!(phone || whatsapp);
-            if (isUnlocked) {
-              return (
-                <View style={styles.contactRevealedCard}>
-                  {(phone || whatsapp) && (
-                    <Text style={styles.contactRevealedNumber}>{phone ?? whatsapp}</Text>
-                  )}
-                  <View style={styles.contactRevealedActions}>
-                    {(whatsapp || phone) && (
-                      <TouchableOpacity
-                        style={[styles.contactActionBtn, { backgroundColor: '#25D366' }]}
-                        onPress={() => {
-                          const num = (whatsapp ?? phone)!.replace(/\D/g, '');
-                          Linking.openURL(`whatsapp://send?phone=${num}`).catch(() =>
-                            Alert.alert(t('propertyDetail.whatsappNotAvailable'), t('propertyDetail.whatsappNotAvailableDesc'))
-                          );
-                        }}
-                        activeOpacity={0.85}
-                      >
-                        <Ionicons name="logo-whatsapp" size={18} color="#fff" />
-                        <Text style={styles.contactActionText}>{t('contactUnlock.whatsapp')}</Text>
-                      </TouchableOpacity>
-                    )}
-                    {phone && (
-                      <TouchableOpacity
-                        style={[styles.contactActionBtn, { backgroundColor: COLORS.primary }]}
-                        onPress={() => Linking.openURL(`tel:${phone}`)}
-                        activeOpacity={0.85}
-                      >
-                        <Ionicons name="call-outline" size={18} color="#fff" />
-                        <Text style={styles.contactActionText}>{t('contactUnlock.call')}</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                  <Button
-                    mode="outlined"
-                    icon="message-text"
-                    loading={contactingOwner}
-                    disabled={contactingOwner}
-                    onPress={handleStartConversation}
-                    style={[styles.messageBtn, { marginTop: 10 }]}
-                    textColor={COLORS.primary}
-                    labelStyle={styles.messageBtnText}
-                  >
-                    {t('propertyDetail.contactOwner')}
-                  </Button>
-                </View>
-              );
-            }
-            return (
-              <>
-                <TouchableOpacity
-                  style={styles.unlockBtn}
-                  activeOpacity={0.85}
-                  onPress={() => {
-                    if (!user) { navigation.navigate('Login'); return; }
-                    setUnlockModalVisible(true);
-                  }}
-                >
-                  <LinearGradient
-                    colors={[COLORS.secondary, COLORS.primary]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.unlockBtnGradient}
-                  >
-                    <Ionicons name="lock-open-outline" size={18} color="#fff" />
-                    <Text style={styles.unlockBtnText}>{t('contactUnlock.title')} — {t('contactUnlock.price')}</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-                <Button
-                  mode="outlined"
-                  icon="message-text"
-                  loading={contactingOwner}
-                  disabled={contactingOwner}
-                  onPress={handleStartConversation}
-                  style={styles.messageBtn}
-                  textColor={COLORS.primary}
-                  labelStyle={styles.messageBtnText}
-                >
-                  {t('propertyDetail.contactOwner')}
-                </Button>
-              </>
-            );
-          })()}
+          {!isOwner && (
+            <Button
+              mode="contained"
+              icon="calendar-check"
+              loading={contactingOwner}
+              disabled={contactingOwner}
+              onPress={handleStartConversation}
+              style={styles.messageBtn}
+              buttonColor={COLORS.primary}
+              labelStyle={styles.messageBtnText}
+            >
+              {t('propertyDetail.reserve')}
+            </Button>
+          )}
 
           <Divider style={styles.divider} />
 
@@ -658,16 +585,6 @@ export default function PropertyDetailScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
-
-      <ContactUnlockModal
-        visible={unlockModalVisible}
-        onClose={() => setUnlockModalVisible(false)}
-        propertyId={property.id}
-        ownerName={`${ownerUser?.first_name ?? ''} ${ownerUser?.last_name ?? ''}`.trim() || t('propertyDetail.owner')}
-        phoneNumber={property.phone_contact}
-        whatsappNumber={property.whatsapp_contact}
-        onUnlocked={() => { setUnlockModalVisible(false); loadProperty(); }}
-      />
 
       <Modal
         visible={shareModalVisible}

@@ -205,6 +205,8 @@
     "courtyard": "Courtyard",
     "description": "Description",
     "contactOwner": "Contact the owner",
+    "reserve": "Book",
+    "autoMessage": "Hello, I'm interested in your listing \"{{title}}\". Is it still available?",
     "reviews": "Reviews ({{count}})",
     "leaveReview": "Leave a review",
     "yourRating": "Your rating:",
@@ -268,6 +270,27 @@
       "completed": "Completed"
     }
   },
+  "plans": {
+    "title": "Choose a plan",
+    "seekers": "Renters",
+    "landlords": "Landlords",
+    "perMonth": "/month",
+    "free": "Free",
+    "choose": "Choose this plan",
+    "current": "Current plan",
+    "popular": "Popular",
+    "unlockToRead": "Upgrade to read",
+    "seeker": {
+      "basic": { "name": "Free", "price": "0", "f1": "Browse all listings", "f2": "1 auto-message per property", "f3": "Owner replies hidden" },
+      "essential": { "name": "Essential", "price": "1 500 XOF", "f1": "Unlimited chat", "f2": "5 property alerts", "f3": "All conversations visible" },
+      "pro": { "name": "Pro", "price": "4 000 XOF", "f1": "Everything in Essential", "f2": "Phone shown directly", "f3": "20 property alerts" }
+    },
+    "landlord": {
+      "free": { "name": "Free", "price": "0", "f1": "1 active listing", "f2": "Reply to all messages", "f3": "Standard visibility" },
+      "standard": { "name": "Standard", "price": "3 000 XOF", "f1": "3 active listings", "f2": "Featured in city search", "f3": "Verified badge" },
+      "agency": { "name": "Agency", "price": "10 000 XOF", "f1": "Unlimited listings", "f2": "Top search placement", "f3": "Detailed analytics" }
+    }
+  },
   "contactUnlock": {
     "title": "Reveal Contact",
     "subtitle": "Pay once to access the owner's contact details for this listing.",
@@ -328,7 +351,9 @@
     "noConversations": "No conversations",
     "noConversationsDesc": "Contact an owner from a listing to start a conversation.",
     "unknownUser": "User",
-    "newConversation": "New conversation"
+    "newConversation": "New conversation",
+    "upgradeBanner": "Upgrade your plan to reply and track unread messages",
+    "upgradeBtn": "Upgrade"
   },
   "chat": {
     "sendError": "Unable to send message",

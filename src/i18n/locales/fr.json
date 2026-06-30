@@ -205,6 +205,8 @@
     "courtyard": "Cour",
     "description": "Description",
     "contactOwner": "Contacter le propriétaire",
+    "reserve": "Réserver",
+    "autoMessage": "Bonjour, je suis intéressé(e) par votre annonce « {{title}} ». Est-elle toujours disponible ?",
     "reviews": "Avis ({{count}})",
     "leaveReview": "Laisser un avis",
     "yourRating": "Votre note :",
@@ -268,6 +270,27 @@
       "completed": "Terminé"
     }
   },
+  "plans": {
+    "title": "Choisir un plan",
+    "seekers": "Locataires",
+    "landlords": "Propriétaires",
+    "perMonth": "/mois",
+    "free": "Gratuit",
+    "choose": "Choisir ce plan",
+    "current": "Plan actuel",
+    "popular": "Populaire",
+    "unlockToRead": "Débloquer pour lire",
+    "seeker": {
+      "basic": { "name": "Gratuit", "price": "0", "f1": "Parcourir toutes les annonces", "f2": "1 message par propriété", "f3": "Réponse du propriétaire masquée" },
+      "essential": { "name": "Essentiel", "price": "1 500 XOF", "f1": "Chat illimité", "f2": "5 alertes de recherche", "f3": "Toutes les conversations visibles" },
+      "pro": { "name": "Pro", "price": "4 000 XOF", "f1": "Tout Essentiel inclus", "f2": "Téléphone affiché directement", "f3": "20 alertes de recherche" }
+    },
+    "landlord": {
+      "free": { "name": "Gratuit", "price": "0", "f1": "1 annonce active", "f2": "Répondre à tous les messages", "f3": "Visibilité standard" },
+      "standard": { "name": "Standard", "price": "3 000 XOF", "f1": "3 annonces actives", "f2": "Mis en avant dans la ville", "f3": "Badge vérifié" },
+      "agency": { "name": "Agence", "price": "10 000 XOF", "f1": "Annonces illimitées", "f2": "Placement en tête de liste", "f3": "Analytiques détaillées" }
+    }
+  },
   "contactUnlock": {
     "title": "Révéler le contact",
     "subtitle": "Payez une fois pour accéder aux coordonnées du propriétaire pour cette annonce.",
@@ -328,7 +351,9 @@
     "noConversations": "Aucune conversation",
     "noConversationsDesc": "Contactez un propriétaire depuis une annonce pour démarrer une conversation.",
     "unknownUser": "Utilisateur",
-    "newConversation": "Nouvelle conversation"
+    "newConversation": "Nouvelle conversation",
+    "upgradeBanner": "Passez à un plan supérieur pour répondre et suivre vos messages non lus",
+    "upgradeBtn": "Mettre à niveau"
   },
   "chat": {
     "sendError": "Impossible d'envoyer le message",

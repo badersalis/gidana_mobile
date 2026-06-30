@@ -3,6 +3,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Platform,
   TextInput,
@@ -26,13 +27,19 @@ function truncateName(n: string) {
   return n.length > NAME_LIMIT ? n.substring(0, NAME_LIMIT).trimEnd() + '…' : n;
 }
 
+const NAME_LIMIT = 22;
+function truncateName(n: string) {
+  return n.length > NAME_LIMIT ? n.substring(0, NAME_LIMIT).trimEnd() + '…' : n;
+}
+
 export default function ChatScreen() {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
-  const { conversationId, name, autoMessage } = route.params as {
+  const { conversationId, name, otherUserAvatar, otherUserInitials } = route.params as {
     conversationId: number;
     name: string;
-    autoMessage?: string;
+    otherUserAvatar?: string;
+    otherUserInitials?: string;
   };
   const displayName = truncateName(name);
   const { t } = useTranslation();
@@ -167,19 +174,17 @@ export default function ChatScreen() {
           keyExtractor={(m) => String(m.id)}
           inverted
           contentContainerStyle={styles.messageList}
-          renderItem={({ item }) => {
-            const isMine = item.sender_id === user?.id;
-            const blurred = !isMine && isBasic;
-            return (
-              <MessageBubble
-                msg={item}
-                isMine={isMine}
-                blurred={blurred}
-                onLongPress={() => { if (isMine) handleDeleteMessage(item.id); }}
-                onBlurTap={() => setPlansVisible(true)}
-              />
-            );
-          }}
+          renderItem={({ item }) => (
+            <MessageBubble
+              msg={item}
+              isMine={item.sender_id === user?.id}
+              otherUserAvatar={otherUserAvatar}
+              otherUserInitials={otherUserInitials}
+              onLongPress={() => {
+                if (item.sender_id === user?.id) handleDeleteMessage(item.id);
+              }}
+            />
+          )}
           ListEmptyComponent={
             <View style={styles.emptyChat}>
               <Text style={styles.emptyChatText}>{t('chat.startConversation')}</Text>
@@ -240,26 +245,33 @@ function MessageBubble({
   isMine,
   blurred,
   onLongPress,
-  onBlurTap,
+  otherUserAvatar,
+  otherUserInitials,
 }: {
   msg: Message;
   isMine: boolean;
   blurred: boolean;
   onLongPress: () => void;
-  onBlurTap: () => void;
+  otherUserAvatar?: string;
+  otherUserInitials?: string;
 }) {
-  const { t } = useTranslation();
+  const [imgError, setImgError] = useState(false);
   const time = new Date(msg.created_at).toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
   });
 
-  return (
+  const showImage = !!otherUserAvatar && !imgError;
+
+  const bubble = (
     <TouchableOpacity
       activeOpacity={blurred ? 1 : 0.8}
       onLongPress={onLongPress}
-      onPress={blurred ? onBlurTap : undefined}
-      style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleOther]}
+      style={[
+        styles.bubble,
+        isMine ? styles.bubbleMine : styles.bubbleOther,
+        !isMine && styles.bubbleInRow,
+      ]}
     >
       <Text
         style={[
@@ -282,5 +294,31 @@ function MessageBubble({
         </Text>
       )}
     </TouchableOpacity>
+  );
+
+  if (isMine) return bubble;
+
+  return (
+    <View style={styles.bubbleRow}>
+      {showImage ? (
+        <Image
+          source={{ uri: otherUserAvatar }}
+          style={styles.bubbleAvatar}
+          onError={() => setImgError(true)}
+        />
+      ) : otherUserInitials ? (
+        <Avatar.Text
+          size={28}
+          label={otherUserInitials}
+          style={styles.bubbleAvatarInitials}
+          labelStyle={{ fontFamily: 'Poppins-SemiBold', fontSize: 10, color: '#fff' }}
+        />
+      ) : (
+        <View style={styles.bubbleAvatarIcon}>
+          <Ionicons name="person" size={14} color={COLORS.primary} />
+        </View>
+      )}
+      {bubble}
+    </View>
   );
 }
