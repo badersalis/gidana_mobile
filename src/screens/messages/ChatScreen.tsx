@@ -19,11 +19,22 @@ import { useWebSocket } from '../../hooks/useWebSocket';
 import { useAuthStore } from '../../store/authStore';
 import { Message } from '../../types';
 import { COLORS } from '../../utils/theme';
+import PlansModal from '../../components/PlansModal';
+
+const NAME_LIMIT = 22;
+function truncateName(n: string) {
+  return n.length > NAME_LIMIT ? n.substring(0, NAME_LIMIT).trimEnd() + '…' : n;
+}
 
 export default function ChatScreen() {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
-  const { conversationId, name } = route.params as { conversationId: number; name: string };
+  const { conversationId, name, autoMessage } = route.params as {
+    conversationId: number;
+    name: string;
+    autoMessage?: string;
+  };
+  const displayName = truncateName(name);
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
 
@@ -31,7 +42,11 @@ export default function ChatScreen() {
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const [plansVisible, setPlansVisible] = useState(false);
   const listRef = useRef<FlatList<Message>>(null);
+  const autoMessageSent = useRef(false);
+
+  const isBasic = !user?.subscription_plan || user?.subscription_plan === 'basic';
 
   const load = useCallback(async () => {
     try {
@@ -47,6 +62,23 @@ export default function ChatScreen() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Auto-send intro message on first open if conversation is empty
+  useEffect(() => {
+    if (loading || autoMessageSent.current || !autoMessage) return;
+    if (messages.length > 0) { autoMessageSent.current = true; return; }
+    autoMessageSent.current = true;
+    messagingApi.sendMessage(conversationId, autoMessage).then(({ data }) => {
+      setMessages([data.data]);
+    }).catch(() => {});
+  }, [loading, messages.length, autoMessage, conversationId]);
+
+  // Show plans immediately when owner has replied and user is on basic
+  useEffect(() => {
+    if (loading || !isBasic) return;
+    const ownerReplied = messages.some((m) => m.sender_id !== user?.id);
+    if (ownerReplied) setPlansVisible(true);
+  }, [loading, messages, isBasic, user?.id]);
 
   const handleNewMessage = useCallback(
     (msg: Message) => {
@@ -65,6 +97,11 @@ export default function ChatScreen() {
   async function handleSend() {
     const content = text.trim();
     if (!content || sending) return;
+    // Basic users can only send the auto-message; block subsequent replies until upgraded
+    if (isBasic && messages.some((m) => m.sender_id !== user?.id)) {
+      setPlansVisible(true);
+      return;
+    }
     setText('');
     setSending(true);
     try {
@@ -74,7 +111,7 @@ export default function ChatScreen() {
         if (exists) return prev;
         return [data.data, ...prev];
       });
-    } catch (e) {
+    } catch {
       setText(content);
       Alert.alert(t('common.error'), t('chat.sendError'));
     } finally {
@@ -114,7 +151,7 @@ export default function ChatScreen() {
           labelStyle={{ fontFamily: 'Poppins-SemiBold', color: '#fff', fontSize: 14 }}
         />
         <Text style={styles.headerName} numberOfLines={1}>
-          {name}
+          {displayName}
         </Text>
       </View>
 
@@ -130,15 +167,19 @@ export default function ChatScreen() {
           keyExtractor={(m) => String(m.id)}
           inverted
           contentContainerStyle={styles.messageList}
-          renderItem={({ item }) => (
-            <MessageBubble
-              msg={item}
-              isMine={item.sender_id === user?.id}
-              onLongPress={() => {
-                if (item.sender_id === user?.id) handleDeleteMessage(item.id);
-              }}
-            />
-          )}
+          renderItem={({ item }) => {
+            const isMine = item.sender_id === user?.id;
+            const blurred = !isMine && isBasic;
+            return (
+              <MessageBubble
+                msg={item}
+                isMine={isMine}
+                blurred={blurred}
+                onLongPress={() => { if (isMine) handleDeleteMessage(item.id); }}
+                onBlurTap={() => setPlansVisible(true)}
+              />
+            );
+          }}
           ListEmptyComponent={
             <View style={styles.emptyChat}>
               <Text style={styles.emptyChatText}>{t('chat.startConversation')}</Text>
@@ -147,36 +188,49 @@ export default function ChatScreen() {
         />
       )}
 
-      {/* Input */}
+      {/* Input — locked for basic users once owner replied */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
       >
-        <View style={styles.inputRow}>
-          <TextInput
-            style={styles.input}
-            placeholder={t('chat.messagePlaceholder')}
-            placeholderTextColor="#aaa"
-            value={text}
-            onChangeText={setText}
-            multiline
-            maxLength={1000}
-            returnKeyType="send"
-            onSubmitEditing={handleSend}
-          />
-          <TouchableOpacity
-            style={[styles.sendBtn, (!text.trim() || sending) && styles.sendBtnDisabled]}
-            onPress={handleSend}
-            disabled={!text.trim() || sending}
-          >
-            {sending ? (
-              <ActivityIndicator size={18} color="#fff" />
-            ) : (
-              <Ionicons name="send" size={20} color="#fff" />
-            )}
+        {isBasic && messages.some((m) => m.sender_id !== user?.id) ? (
+          <TouchableOpacity style={styles.lockedInput} onPress={() => setPlansVisible(true)} activeOpacity={0.8}>
+            <Ionicons name="lock-closed-outline" size={16} color="#aaa" />
+            <Text style={styles.lockedInputText}>{t('plans.unlockToRead')}</Text>
           </TouchableOpacity>
-        </View>
+        ) : (
+          <View style={styles.inputRow}>
+            <TextInput
+              style={styles.input}
+              placeholder={t('chat.messagePlaceholder')}
+              placeholderTextColor="#aaa"
+              value={text}
+              onChangeText={setText}
+              multiline
+              maxLength={1000}
+              returnKeyType="send"
+              onSubmitEditing={handleSend}
+            />
+            <TouchableOpacity
+              style={[styles.sendBtn, (!text.trim() || sending) && styles.sendBtnDisabled]}
+              onPress={handleSend}
+              disabled={!text.trim() || sending}
+            >
+              {sending ? (
+                <ActivityIndicator size={18} color="#fff" />
+              ) : (
+                <Ionicons name="send" size={20} color="#fff" />
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
       </KeyboardAvoidingView>
+
+      <PlansModal
+        visible={plansVisible}
+        onClose={() => setPlansVisible(false)}
+        defaultTab="seekers"
+      />
     </SafeAreaView>
   );
 }
@@ -184,12 +238,17 @@ export default function ChatScreen() {
 function MessageBubble({
   msg,
   isMine,
+  blurred,
   onLongPress,
+  onBlurTap,
 }: {
   msg: Message;
   isMine: boolean;
+  blurred: boolean;
   onLongPress: () => void;
+  onBlurTap: () => void;
 }) {
+  const { t } = useTranslation();
   const time = new Date(msg.created_at).toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
@@ -197,17 +256,31 @@ function MessageBubble({
 
   return (
     <TouchableOpacity
-      activeOpacity={0.8}
+      activeOpacity={blurred ? 1 : 0.8}
       onLongPress={onLongPress}
+      onPress={blurred ? onBlurTap : undefined}
       style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleOther]}
     >
-      <Text style={[styles.bubbleText, isMine ? styles.bubbleTextMine : styles.bubbleTextOther]}>
-        {msg.content}
+      <Text
+        style={[
+          styles.bubbleText,
+          isMine ? styles.bubbleTextMine : styles.bubbleTextOther,
+          blurred && styles.bubbleTextBlurred,
+        ]}
+      >
+        {blurred ? msg.content.replace(/./g, '●') : msg.content}
       </Text>
-      <Text style={[styles.bubbleTime, isMine ? styles.bubbleTimeMine : styles.bubbleTimeOther]}>
-        {time}
-      </Text>
+      {blurred && (
+        <View style={styles.blurOverlay}>
+          <Ionicons name="lock-closed" size={14} color="#fff" />
+          <Text style={styles.blurLabel}>{t('plans.unlockToRead')}</Text>
+        </View>
+      )}
+      {!blurred && (
+        <Text style={[styles.bubbleTime, isMine ? styles.bubbleTimeMine : styles.bubbleTimeOther]}>
+          {time}
+        </Text>
+      )}
     </TouchableOpacity>
   );
 }
-
