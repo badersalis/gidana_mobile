@@ -1,4 +1,4 @@
-import { ApiResponse, PaginatedResponse, Property, Review } from '../types';
+import { ApiResponse, ContactUnlock, PaginatedResponse, Property, Review } from '../types';
 import apiClient from './client';
 
 export const propertyApi = {
@@ -47,4 +47,12 @@ export const propertyApi = {
 
   getSuggestions: (q: string) =>
     apiClient.get<ApiResponse<string[]>>('/search/suggestions', { params: { q } }),
+
+  checkUnlock: (propertyId: number) =>
+    apiClient.get<ApiResponse<ContactUnlock | null>>(`/properties/${propertyId}/unlock`),
+
+  unlockContact: (propertyId: number, walletId: number) =>
+    apiClient.post<ApiResponse<ContactUnlock>>(`/properties/${propertyId}/unlock`, {
+      wallet_id: walletId,
+    }),
 };

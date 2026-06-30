@@ -268,6 +268,22 @@
       "completed": "Completed"
     }
   },
+  "contactUnlock": {
+    "title": "Reveal Contact",
+    "subtitle": "Pay once to access the owner's contact details for this listing.",
+    "price": "500 XOF",
+    "selectWallet": "Select a payment method",
+    "noWallets": "No payment method found",
+    "addWallet": "Add a payment method",
+    "confirm": "Pay & Reveal Contact",
+    "processing": "Processing payment...",
+    "successTitle": "Contact unlocked!",
+    "call": "Call",
+    "whatsapp": "WhatsApp",
+    "alreadyUnlocked": "You have already unlocked this contact.",
+    "unlockError": "Payment failed. Please try again.",
+    "noWalletsDesc": "You need to add a payment method before you can unlock a contact."
+  },
   "guestModal": {
     "title": "Sell & Rent on Gidana!",
     "subtitle": "Join thousands of property owners who trust Gidana",
