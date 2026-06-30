@@ -27,20 +27,17 @@ function truncateName(n: string) {
   return n.length > NAME_LIMIT ? n.substring(0, NAME_LIMIT).trimEnd() + '…' : n;
 }
 
-const NAME_LIMIT = 22;
-function truncateName(n: string) {
-  return n.length > NAME_LIMIT ? n.substring(0, NAME_LIMIT).trimEnd() + '…' : n;
-}
-
 export default function ChatScreen() {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
-  const { conversationId, name, otherUserAvatar, otherUserInitials } = route.params as {
-    conversationId: number;
-    name: string;
-    otherUserAvatar?: string;
-    otherUserInitials?: string;
-  };
+  const { conversationId, name, autoMessage, otherUserAvatar, otherUserInitials } =
+    route.params as {
+      conversationId: number;
+      name: string;
+      autoMessage?: string;
+      otherUserAvatar?: string;
+      otherUserInitials?: string;
+    };
   const displayName = truncateName(name);
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
@@ -80,7 +77,7 @@ export default function ChatScreen() {
     }).catch(() => {});
   }, [loading, messages.length, autoMessage, conversationId]);
 
-  // Show plans immediately when owner has replied and user is on basic
+  // Show plans modal when owner has replied and user is on basic
   useEffect(() => {
     if (loading || !isBasic) return;
     const ownerReplied = messages.some((m) => m.sender_id !== user?.id);
@@ -104,7 +101,6 @@ export default function ChatScreen() {
   async function handleSend() {
     const content = text.trim();
     if (!content || sending) return;
-    // Basic users can only send the auto-message; block subsequent replies until upgraded
     if (isBasic && messages.some((m) => m.sender_id !== user?.id)) {
       setPlansVisible(true);
       return;
@@ -174,17 +170,21 @@ export default function ChatScreen() {
           keyExtractor={(m) => String(m.id)}
           inverted
           contentContainerStyle={styles.messageList}
-          renderItem={({ item }) => (
-            <MessageBubble
-              msg={item}
-              isMine={item.sender_id === user?.id}
-              otherUserAvatar={otherUserAvatar}
-              otherUserInitials={otherUserInitials}
-              onLongPress={() => {
-                if (item.sender_id === user?.id) handleDeleteMessage(item.id);
-              }}
-            />
-          )}
+          renderItem={({ item }) => {
+            const isMine = item.sender_id === user?.id;
+            const blurred = !isMine && isBasic;
+            return (
+              <MessageBubble
+                msg={item}
+                isMine={isMine}
+                blurred={blurred}
+                otherUserAvatar={otherUserAvatar}
+                otherUserInitials={otherUserInitials}
+                onLongPress={() => { if (isMine) handleDeleteMessage(item.id); }}
+                onBlurTap={() => setPlansVisible(true)}
+              />
+            );
+          }}
           ListEmptyComponent={
             <View style={styles.emptyChat}>
               <Text style={styles.emptyChatText}>{t('chat.startConversation')}</Text>
@@ -245,6 +245,7 @@ function MessageBubble({
   isMine,
   blurred,
   onLongPress,
+  onBlurTap,
   otherUserAvatar,
   otherUserInitials,
 }: {
@@ -252,9 +253,11 @@ function MessageBubble({
   isMine: boolean;
   blurred: boolean;
   onLongPress: () => void;
+  onBlurTap: () => void;
   otherUserAvatar?: string;
   otherUserInitials?: string;
 }) {
+  const { t } = useTranslation();
   const [imgError, setImgError] = useState(false);
   const time = new Date(msg.created_at).toLocaleTimeString([], {
     hour: '2-digit',
@@ -267,6 +270,7 @@ function MessageBubble({
     <TouchableOpacity
       activeOpacity={blurred ? 1 : 0.8}
       onLongPress={onLongPress}
+      onPress={blurred ? onBlurTap : undefined}
       style={[
         styles.bubble,
         isMine ? styles.bubbleMine : styles.bubbleOther,
