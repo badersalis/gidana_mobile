@@ -124,4 +124,51 @@ export default StyleSheet.create({
     fontSize: 13,
     color: '#888',
   },
+  rowPreviewUnread: {
+    fontFamily: 'Poppins-Medium',
+    color: '#555',
+  },
+  rowNameUnread: {
+    fontFamily: 'Poppins-Bold',
+    color: '#111',
+  },
+  rowMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  unreadBadge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
+  },
+  unreadBadgeText: {
+    fontFamily: 'Poppins-SemiBold',
+    fontSize: 10,
+    color: '#fff',
+  },
+  upgradeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: COLORS.primary,
+  },
+  upgradeBannerText: {
+    flex: 1,
+    fontFamily: 'Poppins-Regular',
+    fontSize: 12,
+    color: '#fff',
+  },
+  upgradeBannerBtn: {
+    fontFamily: 'Poppins-SemiBold',
+    fontSize: 12,
+    color: '#fff',
+    textDecorationLine: 'underline',
+  },
 });

@@ -18,6 +18,7 @@ import { useAuthStore } from '../../store/authStore';
 import { Conversation, Message } from '../../types';
 import { formatDate } from '../../utils/currency';
 import { COLORS } from '../../utils/theme';
+import PlansModal from '../../components/PlansModal';
 
 export default function ConversationsScreen() {
   const navigation = useNavigation<any>();
@@ -26,6 +27,9 @@ export default function ConversationsScreen() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [plansVisible, setPlansVisible] = useState(false);
+
+  const isBasic = !user?.subscription_plan || user?.subscription_plan === 'basic';
 
   const load = useCallback(async () => {
     try {
@@ -47,7 +51,9 @@ export default function ConversationsScreen() {
   const handleNewMessage = useCallback((msg: Message) => {
     setConversations((prev) =>
       prev.map((c) =>
-        c.id === msg.conversation_id ? { ...c, last_message: msg } : c
+        c.id === msg.conversation_id
+          ? { ...c, last_message: msg, unread_count: (c.unread_count ?? 0) + 1 }
+          : c
       )
     );
   }, []);
@@ -87,6 +93,15 @@ export default function ConversationsScreen() {
         <View style={{ width: 40 }} />
       </View>
 
+      {/* Upgrade banner for basic users */}
+      {isBasic && (
+        <TouchableOpacity style={styles.upgradeBanner} onPress={() => setPlansVisible(true)} activeOpacity={0.85}>
+          <Ionicons name="lock-closed-outline" size={16} color="#fff" />
+          <Text style={styles.upgradeBannerText}>{t('conversations.upgradeBanner')}</Text>
+          <Text style={styles.upgradeBannerBtn}>{t('conversations.upgradeBtn')}</Text>
+        </TouchableOpacity>
+      )}
+
       {conversations.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="chatbubbles-outline" size={64} color={COLORS.textLight} />
@@ -108,15 +123,31 @@ export default function ConversationsScreen() {
               tintColor={COLORS.primary}
             />
           }
-          renderItem={({ item }) => <ConversationRow item={item} userId={user.id} />}
+          renderItem={({ item }) => (
+            <ConversationRow item={item} userId={user.id} showUnread={!isBasic} />
+          )}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
         />
       )}
+
+      <PlansModal
+        visible={plansVisible}
+        onClose={() => setPlansVisible(false)}
+        defaultTab="seekers"
+      />
     </SafeAreaView>
   );
 }
 
-function ConversationRow({ item, userId }: { item: Conversation; userId: number }) {
+function ConversationRow({
+  item,
+  userId,
+  showUnread,
+}: {
+  item: Conversation;
+  userId: number;
+  showUnread: boolean;
+}) {
   const navigation = useNavigation<any>();
   const { t } = useTranslation();
   const [imgError, setImgError] = useState(false);
@@ -127,12 +158,20 @@ function ConversationRow({ item, userId }: { item: Conversation; userId: number 
   const contact = other?.phone_number ?? other?.email ?? null;
   const preview = item.last_message?.content ?? item.property?.title ?? t('conversations.newConversation');
   const showImage = !!other?.profile_picture && !imgError;
+  const unread = showUnread && (item.unread_count ?? 0) > 0 ? item.unread_count : 0;
 
   return (
     <TouchableOpacity
       style={styles.row}
       activeOpacity={0.7}
-      onPress={() => navigation.navigate('Chat', { conversationId: item.id, name })}
+      onPress={() =>
+        navigation.navigate('Chat', {
+          conversationId: item.id,
+          name,
+          otherUserAvatar: other?.profile_picture ?? undefined,
+          otherUserInitials: initials || undefined,
+        })
+      }
     >
       {showImage ? (
         <Image
@@ -154,12 +193,19 @@ function ConversationRow({ item, userId }: { item: Conversation; userId: number 
       )}
       <View style={styles.rowContent}>
         <View style={styles.rowTop}>
-          <Text style={styles.rowName} numberOfLines={1}>
+          <Text style={[styles.rowName, !!unread && styles.rowNameUnread]} numberOfLines={1}>
             {name}
           </Text>
-          {item.last_message && (
-            <Text style={styles.rowTime}>{formatDate(item.last_message.created_at)}</Text>
-          )}
+          <View style={styles.rowMeta}>
+            {item.last_message && (
+              <Text style={styles.rowTime}>{formatDate(item.last_message.created_at)}</Text>
+            )}
+            {!!unread && (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadBadgeText}>{unread > 99 ? '99+' : unread}</Text>
+              </View>
+            )}
+          </View>
         </View>
         {contact ? (
           <Text style={styles.rowContact}>{contact}</Text>
@@ -169,11 +215,10 @@ function ConversationRow({ item, userId }: { item: Conversation; userId: number 
             {item.property.title}
           </Text>
         )}
-        <Text style={styles.rowPreview} numberOfLines={1}>
+        <Text style={[styles.rowPreview, !!unread && styles.rowPreviewUnread]} numberOfLines={1}>
           {preview}
         </Text>
       </View>
     </TouchableOpacity>
   );
 }
-

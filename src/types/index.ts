@@ -1,3 +1,6 @@
+export type SubscriptionPlan = 'basic' | 'essential' | 'pro';
+export type LandlordPlan = 'free' | 'standard' | 'agency';
+
 export interface User {
   id: number;
   first_name: string;
@@ -13,6 +16,8 @@ export interface User {
   locale: string;
   timezone: string;
   created_at?: string;
+  subscription_plan?: SubscriptionPlan;
+  landlord_plan?: LandlordPlan;
 }
 
 export interface Message {
@@ -35,6 +40,7 @@ export interface Conversation {
   tenant?: User;
   last_message?: Message;
   messages?: Message[];
+  unread_count?: number;
 }
 
 export interface PropertyImage {

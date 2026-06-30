@@ -3,6 +3,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Platform,
   TextInput,
@@ -29,11 +30,14 @@ function truncateName(n: string) {
 export default function ChatScreen() {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
-  const { conversationId, name, autoMessage } = route.params as {
-    conversationId: number;
-    name: string;
-    autoMessage?: string;
-  };
+  const { conversationId, name, autoMessage, otherUserAvatar, otherUserInitials } =
+    route.params as {
+      conversationId: number;
+      name: string;
+      autoMessage?: string;
+      otherUserAvatar?: string;
+      otherUserInitials?: string;
+    };
   const displayName = truncateName(name);
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
@@ -73,7 +77,7 @@ export default function ChatScreen() {
     }).catch(() => {});
   }, [loading, messages.length, autoMessage, conversationId]);
 
-  // Show plans immediately when owner has replied and user is on basic
+  // Show plans modal when owner has replied and user is on basic
   useEffect(() => {
     if (loading || !isBasic) return;
     const ownerReplied = messages.some((m) => m.sender_id !== user?.id);
@@ -97,7 +101,6 @@ export default function ChatScreen() {
   async function handleSend() {
     const content = text.trim();
     if (!content || sending) return;
-    // Basic users can only send the auto-message; block subsequent replies until upgraded
     if (isBasic && messages.some((m) => m.sender_id !== user?.id)) {
       setPlansVisible(true);
       return;
@@ -175,6 +178,8 @@ export default function ChatScreen() {
                 msg={item}
                 isMine={isMine}
                 blurred={blurred}
+                otherUserAvatar={otherUserAvatar}
+                otherUserInitials={otherUserInitials}
                 onLongPress={() => { if (isMine) handleDeleteMessage(item.id); }}
                 onBlurTap={() => setPlansVisible(true)}
               />
@@ -241,25 +246,36 @@ function MessageBubble({
   blurred,
   onLongPress,
   onBlurTap,
+  otherUserAvatar,
+  otherUserInitials,
 }: {
   msg: Message;
   isMine: boolean;
   blurred: boolean;
   onLongPress: () => void;
   onBlurTap: () => void;
+  otherUserAvatar?: string;
+  otherUserInitials?: string;
 }) {
   const { t } = useTranslation();
+  const [imgError, setImgError] = useState(false);
   const time = new Date(msg.created_at).toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
   });
 
-  return (
+  const showImage = !!otherUserAvatar && !imgError;
+
+  const bubble = (
     <TouchableOpacity
       activeOpacity={blurred ? 1 : 0.8}
       onLongPress={onLongPress}
       onPress={blurred ? onBlurTap : undefined}
-      style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleOther]}
+      style={[
+        styles.bubble,
+        isMine ? styles.bubbleMine : styles.bubbleOther,
+        !isMine && styles.bubbleInRow,
+      ]}
     >
       <Text
         style={[
@@ -282,5 +298,31 @@ function MessageBubble({
         </Text>
       )}
     </TouchableOpacity>
+  );
+
+  if (isMine) return bubble;
+
+  return (
+    <View style={styles.bubbleRow}>
+      {showImage ? (
+        <Image
+          source={{ uri: otherUserAvatar }}
+          style={styles.bubbleAvatar}
+          onError={() => setImgError(true)}
+        />
+      ) : otherUserInitials ? (
+        <Avatar.Text
+          size={28}
+          label={otherUserInitials}
+          style={styles.bubbleAvatarInitials}
+          labelStyle={{ fontFamily: 'Poppins-SemiBold', fontSize: 10, color: '#fff' }}
+        />
+      ) : (
+        <View style={styles.bubbleAvatarIcon}>
+          <Ionicons name="person" size={14} color={COLORS.primary} />
+        </View>
+      )}
+      {bubble}
+    </View>
   );
 }
