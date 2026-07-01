@@ -155,13 +155,17 @@ export default function ChatScreen() {
             source={{ uri: otherUserAvatar }}
             style={styles.headerAvatar}
           />
-        ) : (
+        ) : otherUserInitials ? (
           <Avatar.Text
             size={36}
-            label={(name[0] ?? '?').toUpperCase()}
-            style={[styles.headerAvatar, { backgroundColor: 'rgba(255,255,255,0.25)' }]}
+            label={otherUserInitials}
+            style={styles.headerAvatar}
             labelStyle={{ fontFamily: 'Poppins-SemiBold', color: '#fff', fontSize: 14 }}
           />
+        ) : (
+          <View style={styles.headerAvatarIcon}>
+            <Ionicons name="person" size={20} color="#fff" />
+          </View>
         )}
         <Text style={styles.headerName} numberOfLines={1}>
           {displayName}

@@ -26,8 +26,15 @@ export default StyleSheet.create({
     justifyContent: 'center',
   },
   headerAvatar: {
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.4)',
+    backgroundColor: COLORS.primary + 'cc',
+  },
+  headerAvatarIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.primary + 'cc',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerName: {
     flex: 1,
