@@ -151,9 +151,13 @@ function ConversationRow({
   const navigation = useNavigation<any>();
   const { t } = useTranslation();
   const [imgError, setImgError] = useState(false);
-  const other = userId === item.owner_id ? item.tenant : item.owner;
+  const isCurrentUserOwner = userId === item.owner_id;
+  const other = isCurrentUserOwner ? item.tenant : item.owner;
+  const fallbackName = isCurrentUserOwner
+    ? t('conversations.tenant')
+    : t('conversations.owner');
   const name =
-    `${other?.first_name ?? ''} ${other?.last_name ?? ''}`.trim() || t('conversations.unknownUser');
+    `${other?.first_name ?? ''} ${other?.last_name ?? ''}`.trim() || fallbackName;
   const initials = `${other?.first_name?.[0] ?? ''}${other?.last_name?.[0] ?? ''}`.toUpperCase();
   const contact = other?.phone_number ?? other?.email ?? null;
   const preview = item.last_message?.content ?? item.property?.title ?? t('conversations.newConversation');

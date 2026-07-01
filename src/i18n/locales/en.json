@@ -351,6 +351,8 @@
     "noConversations": "No conversations",
     "noConversationsDesc": "Contact an owner from a listing to start a conversation.",
     "unknownUser": "User",
+    "owner": "Owner",
+    "tenant": "Tenant",
     "newConversation": "New conversation",
     "upgradeBanner": "Upgrade your plan to reply and track unread messages",
     "upgradeBtn": "Upgrade"
