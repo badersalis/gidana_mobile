@@ -42,6 +42,10 @@ export default function ChatScreen() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
 
+  const myAvatar = user?.profile_picture ?? undefined;
+  const myInitials =
+    `${user?.first_name?.[0] ?? ''}${user?.last_name?.[0] ?? ''}`.toUpperCase() || undefined;
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
@@ -67,7 +71,6 @@ export default function ChatScreen() {
     load();
   }, [load]);
 
-  // Auto-send intro message on first open if conversation is empty
   useEffect(() => {
     if (loading || autoMessageSent.current || !autoMessage) return;
     if (messages.length > 0) { autoMessageSent.current = true; return; }
@@ -77,7 +80,6 @@ export default function ChatScreen() {
     }).catch(() => {});
   }, [loading, messages.length, autoMessage, conversationId]);
 
-  // Show plans modal when owner has replied and user is on basic
   useEffect(() => {
     if (loading || !isBasic) return;
     const ownerReplied = messages.some((m) => m.sender_id !== user?.id);
@@ -142,17 +144,25 @@ export default function ChatScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      {/* Header */}
+      {/* Header — green bar with back, avatar, name */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Avatar.Text
-          size={36}
-          label={(name[0] ?? '?').toUpperCase()}
-          style={{ backgroundColor: COLORS.primary + 'cc' }}
-          labelStyle={{ fontFamily: 'Poppins-SemiBold', color: '#fff', fontSize: 14 }}
-        />
+        {otherUserAvatar ? (
+          <Avatar.Image
+            size={36}
+            source={{ uri: otherUserAvatar }}
+            style={styles.headerAvatar}
+          />
+        ) : (
+          <Avatar.Text
+            size={36}
+            label={(name[0] ?? '?').toUpperCase()}
+            style={[styles.headerAvatar, { backgroundColor: 'rgba(255,255,255,0.25)' }]}
+            labelStyle={{ fontFamily: 'Poppins-SemiBold', color: '#fff', fontSize: 14 }}
+          />
+        )}
         <Text style={styles.headerName} numberOfLines={1}>
           {displayName}
         </Text>
@@ -180,6 +190,8 @@ export default function ChatScreen() {
                 blurred={blurred}
                 otherUserAvatar={otherUserAvatar}
                 otherUserInitials={otherUserInitials}
+                myAvatar={myAvatar}
+                myInitials={myInitials}
                 onLongPress={() => { if (isMine) handleDeleteMessage(item.id); }}
                 onBlurTap={() => setPlansVisible(true)}
               />
@@ -193,13 +205,17 @@ export default function ChatScreen() {
         />
       )}
 
-      {/* Input — locked for basic users once owner replied */}
+      {/* Input bar */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
       >
         {isBasic && messages.some((m) => m.sender_id !== user?.id) ? (
-          <TouchableOpacity style={styles.lockedInput} onPress={() => setPlansVisible(true)} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={styles.lockedInput}
+            onPress={() => setPlansVisible(true)}
+            activeOpacity={0.8}
+          >
             <Ionicons name="lock-closed-outline" size={16} color="#aaa" />
             <Text style={styles.lockedInputText}>{t('plans.unlockToRead')}</Text>
           </TouchableOpacity>
@@ -224,7 +240,7 @@ export default function ChatScreen() {
               {sending ? (
                 <ActivityIndicator size={18} color="#fff" />
               ) : (
-                <Ionicons name="send" size={20} color="#fff" />
+                <Ionicons name="send" size={18} color="#fff" />
               )}
             </TouchableOpacity>
           </View>
@@ -248,6 +264,8 @@ function MessageBubble({
   onBlurTap,
   otherUserAvatar,
   otherUserInitials,
+  myAvatar,
+  myInitials,
 }: {
   msg: Message;
   isMine: boolean;
@@ -256,25 +274,29 @@ function MessageBubble({
   onBlurTap: () => void;
   otherUserAvatar?: string;
   otherUserInitials?: string;
+  myAvatar?: string;
+  myInitials?: string;
 }) {
   const { t } = useTranslation();
   const [imgError, setImgError] = useState(false);
+  const [myImgError, setMyImgError] = useState(false);
   const time = new Date(msg.created_at).toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
   });
 
-  const showImage = !!otherUserAvatar && !imgError;
+  const showOtherImage = !!otherUserAvatar && !imgError;
+  const showMyImage = !!myAvatar && !myImgError;
 
   const bubble = (
     <TouchableOpacity
-      activeOpacity={blurred ? 1 : 0.8}
+      activeOpacity={blurred ? 1 : 0.85}
       onLongPress={onLongPress}
       onPress={blurred ? onBlurTap : undefined}
       style={[
         styles.bubble,
         isMine ? styles.bubbleMine : styles.bubbleOther,
-        !isMine && styles.bubbleInRow,
+        styles.bubbleInRow,
       ]}
     >
       <Text
@@ -293,36 +315,61 @@ function MessageBubble({
         </View>
       )}
       {!blurred && (
-        <Text style={[styles.bubbleTime, isMine ? styles.bubbleTimeMine : styles.bubbleTimeOther]}>
+        <Text
+          style={[
+            styles.bubbleTime,
+            isMine ? styles.bubbleTimeMine : styles.bubbleTimeOther,
+          ]}
+        >
           {time}
         </Text>
       )}
     </TouchableOpacity>
   );
 
-  if (isMine) return bubble;
+  const avatarNode = isMine ? (
+    showMyImage ? (
+      <Image
+        source={{ uri: myAvatar }}
+        style={styles.bubbleAvatar}
+        onError={() => setMyImgError(true)}
+      />
+    ) : myInitials ? (
+      <Avatar.Text
+        size={28}
+        label={myInitials}
+        style={styles.bubbleAvatarInitials}
+        labelStyle={{ fontFamily: 'Poppins-SemiBold', fontSize: 10, color: '#fff' }}
+      />
+    ) : (
+      <View style={styles.bubbleAvatarIcon}>
+        <Ionicons name="person" size={14} color={COLORS.primary} />
+      </View>
+    )
+  ) : showOtherImage ? (
+    <Image
+      source={{ uri: otherUserAvatar }}
+      style={styles.bubbleAvatar}
+      onError={() => setImgError(true)}
+    />
+  ) : otherUserInitials ? (
+    <Avatar.Text
+      size={28}
+      label={otherUserInitials}
+      style={styles.bubbleAvatarInitials}
+      labelStyle={{ fontFamily: 'Poppins-SemiBold', fontSize: 10, color: '#fff' }}
+    />
+  ) : (
+    <View style={styles.bubbleAvatarIcon}>
+      <Ionicons name="person" size={14} color={COLORS.primary} />
+    </View>
+  );
 
   return (
-    <View style={styles.bubbleRow}>
-      {showImage ? (
-        <Image
-          source={{ uri: otherUserAvatar }}
-          style={styles.bubbleAvatar}
-          onError={() => setImgError(true)}
-        />
-      ) : otherUserInitials ? (
-        <Avatar.Text
-          size={28}
-          label={otherUserInitials}
-          style={styles.bubbleAvatarInitials}
-          labelStyle={{ fontFamily: 'Poppins-SemiBold', fontSize: 10, color: '#fff' }}
-        />
-      ) : (
-        <View style={styles.bubbleAvatarIcon}>
-          <Ionicons name="person" size={14} color={COLORS.primary} />
-        </View>
-      )}
+    <View style={isMine ? styles.bubbleRowMine : styles.bubbleRow}>
+      {!isMine && avatarNode}
       {bubble}
+      {isMine && avatarNode}
     </View>
   );
 }
