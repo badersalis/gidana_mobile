@@ -125,15 +125,17 @@ export default function PropertyDetailScreen() {
     try {
       const { data } = await messagingApi.startConversation(property.id);
       const conv = data.data;
+      const owner = property.user ?? property.owner;
       const ownerName =
-        `${property.user?.first_name ?? ''} ${property.user?.last_name ?? ''}`.trim() || t('propertyDetail.owner');
-      const ownerInitials = `${property.user?.first_name?.[0] ?? ''}${property.user?.last_name?.[0] ?? ''}`.toUpperCase() || undefined;
+        `${owner?.first_name ?? ''} ${owner?.last_name ?? ''}`.trim() || t('propertyDetail.owner');
+      const ownerInitials =
+        `${owner?.first_name?.[0] ?? ''}${owner?.last_name?.[0] ?? ''}`.toUpperCase() || undefined;
       const autoMessage = t('propertyDetail.autoMessage', { title: property.title });
       navigation.navigate('Chat', {
         conversationId: conv.id,
         name: ownerName,
         autoMessage,
-        otherUserAvatar: property.user?.profile_picture ?? undefined,
+        otherUserAvatar: owner?.profile_picture ?? undefined,
         otherUserInitials: ownerInitials,
       });
     } catch (e: any) {

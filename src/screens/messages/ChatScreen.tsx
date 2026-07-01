@@ -147,12 +147,24 @@ export default function ChatScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Avatar.Text
-          size={36}
-          label={(name[0] ?? '?').toUpperCase()}
-          style={{ backgroundColor: COLORS.primary + 'cc' }}
-          labelStyle={{ fontFamily: 'Poppins-SemiBold', color: '#fff', fontSize: 14 }}
-        />
+        {otherUserAvatar ? (
+          <Avatar.Image
+            size={36}
+            source={{ uri: otherUserAvatar }}
+            style={styles.headerAvatar}
+          />
+        ) : otherUserInitials ? (
+          <Avatar.Text
+            size={36}
+            label={otherUserInitials}
+            style={styles.headerAvatar}
+            labelStyle={{ fontFamily: 'Poppins-SemiBold', color: '#fff', fontSize: 14 }}
+          />
+        ) : (
+          <View style={styles.headerAvatarIcon}>
+            <Ionicons name="person" size={20} color="#fff" />
+          </View>
+        )}
         <Text style={styles.headerName} numberOfLines={1}>
           {displayName}
         </Text>
