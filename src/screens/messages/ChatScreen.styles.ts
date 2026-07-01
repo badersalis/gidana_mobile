@@ -20,6 +20,17 @@ export default StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  headerAvatar: {
+    backgroundColor: COLORS.primary + 'cc',
+  },
+  headerAvatarIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.primary + 'cc',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   headerName: {
     flex: 1,
     fontFamily: 'Poppins-SemiBold',
