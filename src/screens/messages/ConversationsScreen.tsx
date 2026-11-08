@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import styles from './ConversationsScreen.styles';
-import { ActivityIndicator, Avatar, Text } from 'react-native-paper';
+import { ActivityIndicator, Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { messagingApi } from '../../api/messaging';
@@ -153,13 +153,11 @@ function ConversationRow({
   const [imgError, setImgError] = useState(false);
   const isCurrentUserOwner = userId === item.owner_id;
   const other = isCurrentUserOwner ? item.tenant : item.owner;
-  const fallbackName = isCurrentUserOwner
-    ? t('conversations.tenant')
-    : t('conversations.owner');
   const name =
-    `${other?.first_name ?? ''} ${other?.last_name ?? ''}`.trim() || fallbackName;
-  const initials = `${other?.first_name?.[0] ?? ''}${other?.last_name?.[0] ?? ''}`.toUpperCase();
-  const contact = other?.phone_number ?? other?.email ?? null;
+    `${other?.first_name ?? ''} ${other?.last_name ?? ''}`.trim() ||
+    other?.email ||
+    other?.phone_number ||
+    t('conversations.unknownUser');
   const preview = item.last_message?.content ?? item.property?.title ?? t('conversations.newConversation');
   const showImage = !!other?.profile_picture && !imgError;
   const unread = showUnread && (item.unread_count ?? 0) > 0 ? item.unread_count : 0;
@@ -173,7 +171,6 @@ function ConversationRow({
           conversationId: item.id,
           name,
           otherUserAvatar: other?.profile_picture ?? undefined,
-          otherUserInitials: initials || undefined,
         })
       }
     >
@@ -182,13 +179,6 @@ function ConversationRow({
           source={{ uri: other!.profile_picture }}
           style={styles.avatar}
           onError={() => setImgError(true)}
-        />
-      ) : initials ? (
-        <Avatar.Text
-          size={52}
-          label={initials}
-          style={{ backgroundColor: COLORS.primary + 'cc' }}
-          labelStyle={{ fontFamily: 'Poppins-SemiBold', color: '#fff' }}
         />
       ) : (
         <View style={styles.avatarPlaceholder}>
@@ -211,9 +201,6 @@ function ConversationRow({
             )}
           </View>
         </View>
-        {contact ? (
-          <Text style={styles.rowContact}>{contact}</Text>
-        ) : null}
         {item.property && (
           <Text style={styles.rowProperty} numberOfLines={1}>
             {item.property.title}

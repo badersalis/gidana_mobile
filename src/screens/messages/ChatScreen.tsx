@@ -43,8 +43,6 @@ export default function ChatScreen() {
   const user = useAuthStore((s) => s.user);
 
   const myAvatar = user?.profile_picture ?? undefined;
-  const myInitials =
-    `${user?.first_name?.[0] ?? ''}${user?.last_name?.[0] ?? ''}`.toUpperCase() || undefined;
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
@@ -193,9 +191,7 @@ export default function ChatScreen() {
                 isMine={isMine}
                 blurred={blurred}
                 otherUserAvatar={otherUserAvatar}
-                otherUserInitials={otherUserInitials}
                 myAvatar={myAvatar}
-                myInitials={myInitials}
                 onLongPress={() => { if (isMine) handleDeleteMessage(item.id); }}
                 onBlurTap={() => setPlansVisible(true)}
               />
@@ -267,9 +263,7 @@ function MessageBubble({
   onLongPress,
   onBlurTap,
   otherUserAvatar,
-  otherUserInitials,
   myAvatar,
-  myInitials,
 }: {
   msg: Message;
   isMine: boolean;
@@ -277,9 +271,7 @@ function MessageBubble({
   onLongPress: () => void;
   onBlurTap: () => void;
   otherUserAvatar?: string;
-  otherUserInitials?: string;
   myAvatar?: string;
-  myInitials?: string;
 }) {
   const { t } = useTranslation();
   const [imgError, setImgError] = useState(false);
@@ -338,13 +330,6 @@ function MessageBubble({
         style={styles.bubbleAvatar}
         onError={() => setMyImgError(true)}
       />
-    ) : myInitials ? (
-      <Avatar.Text
-        size={28}
-        label={myInitials}
-        style={styles.bubbleAvatarInitials}
-        labelStyle={{ fontFamily: 'Poppins-SemiBold', fontSize: 10, color: '#fff' }}
-      />
     ) : (
       <View style={styles.bubbleAvatarIcon}>
         <Ionicons name="person" size={14} color={COLORS.primary} />
@@ -355,13 +340,6 @@ function MessageBubble({
       source={{ uri: otherUserAvatar }}
       style={styles.bubbleAvatar}
       onError={() => setImgError(true)}
-    />
-  ) : otherUserInitials ? (
-    <Avatar.Text
-      size={28}
-      label={otherUserInitials}
-      style={styles.bubbleAvatarInitials}
-      labelStyle={{ fontFamily: 'Poppins-SemiBold', fontSize: 10, color: '#fff' }}
     />
   ) : (
     <View style={styles.bubbleAvatarIcon}>
