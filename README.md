@@ -1,6 +1,6 @@
 # Gidana Mobile
 
-**Gidana** is a property discovery and rental platform built for Africa. It lets anyone search for studios, apartments, or houses within their budget, view photos, contact verified owners, book appointments, and manage contracts entirely in the cloud.
+**Gidana** is a property discovery and rental platform built for Africa. It lets anyone search for studios, apartments, or houses within their budget, view photos, message owners before visiting, and track contracts and payments in one place.
 
 This repository contains the React Native (Expo) mobile application.
 
@@ -9,13 +9,13 @@ This repository contains the React Native (Expo) mobile application.
 ## Features
 
 - **Property Search** — Filter by type (Studio, Apartment, House), price, neighborhood, number of rooms, and transaction type (rent or buy)
-- **Property Listings** — Photo galleries, detailed descriptions, amenities, and verified owner contact info (WhatsApp / phone)
+- **Property Listings** — Photo galleries, detailed descriptions, amenities, and owner contact via in-app chat (WhatsApp / phone on the Pro plan)
 - **Favorites** — Save and revisit properties you're interested in
 - **Rental Management** — Track active and past rental contracts
 - **Wallet & Payments** — Link payment methods (Nita, MPesa, Visa, Mastercard, PayPal) and manage your balance
 - **Transaction History** — Full log of all payments and income
 - **Bill Payments** — Pay services like Starlink and Canal+ directly in-app
-- **Reviews & Ratings** — Read and leave verified reviews on properties
+- **Reviews & Ratings** — Read and leave reviews on properties
 - **Search Alerts** — Get notified when a property matching your criteria becomes available
 - **Onboarding** — Smooth first-launch experience before login
 

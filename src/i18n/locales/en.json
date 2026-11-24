@@ -19,8 +19,8 @@
     "login": "Login",
     "detectLocation": "Detect my location",
     "heroTitle": "Find your\n",
-    "heroTitleHighlight": "ideal home",
-    "heroSubtitle": "Discover studios, apartments and houses for rent",
+    "heroTitleHighlight": "home",
+    "heroSubtitle": "Studios, apartments and houses to rent or buy, within your budget",
     "searchInCity": "Search in {{city}}...",
     "searchProperty": "Search for a property...",
     "categoriesSubtitle": "Categories",
@@ -52,11 +52,11 @@
     "firstName": "First name",
     "lastName": "Last name",
     "createAccount": "Create an account",
-    "joinGidana": "Join Gidana to find your ideal home",
+    "joinGidana": "Join Gidana to find your home",
     "phone": "Phone",
     "email": "Email",
     "emailAddress": "Email address",
-    "phoneInput": "Phone (+221XXXXXXXXX)",
+    "phoneInput": "Phone (+225XXXXXXXXXX)",
     "passwordMin": "Password (min. 6 characters)",
     "signUp": "Sign up",
     "alreadyAccount": "Already have an account?",
@@ -88,33 +88,33 @@
     "next": "Next",
     "start": "Get Started",
     "slide1": {
-      "title": "Find your\nideal home",
-      "subtitle": "Finding a studio has never been easier",
-      "highlight": "Simplified search",
+      "title": "Find your\nhome",
+      "subtitle": "No runaround: only homes within your budget and in your neighbourhood",
+      "highlight": "Focused search",
       "features": [
-        "Thousands of verified listings",
         "Search by neighbourhood, price or type",
+        "Photos of every property",
         "Personalised alerts"
       ]
     },
     "slide2": {
       "title": "Find what\nfits you",
       "subtitle": "Find what you need within your budget and contact the owner",
-      "highlight": "Direct connection",
+      "highlight": "Talk before you travel",
       "features": [
         "Filters tailored to your budget",
         "Contact the owner before visiting",
-        "Virtual tours available"
+        "Visit only what you like"
       ]
     },
     "slide3": {
-      "title": "We handle\neverything",
-      "subtitle": "We manage all the formalities for you",
-      "highlight": "Full support",
+      "title": "Everything in\none place",
+      "subtitle": "Favourites, contracts and payments tracked in the app",
+      "highlight": "Easy tracking",
       "features": [
-        "Simplified rental contracts",
-        "Automated administrative management",
-        "Legal assistance included"
+        "Your saved favourites",
+        "Track your rental contracts",
+        "Pay from your wallet"
       ]
     }
   },
@@ -205,7 +205,7 @@
     "courtyard": "Courtyard",
     "description": "Description",
     "contactOwner": "Contact the owner",
-    "reserve": "Book",
+    "reserve": "Contact the owner",
     "autoMessage": "Hello, I'm interested in your listing \"{{title}}\". Is it still available?",
     "reviews": "Reviews ({{count}})",
     "leaveReview": "Leave a review",
@@ -287,7 +287,7 @@
     },
     "landlord": {
       "free": { "name": "Free", "price": "0", "f1": "1 active listing", "f2": "Reply to all messages", "f3": "Standard visibility" },
-      "standard": { "name": "Standard", "price": "3 000 XOF", "f1": "3 active listings", "f2": "Featured in city search", "f3": "Verified badge" },
+      "standard": { "name": "Standard", "price": "3 000 XOF", "f1": "3 active listings", "f2": "Featured in city search", "f3": "Standard badge on your listings" },
       "agency": { "name": "Agency", "price": "10 000 XOF", "f1": "Unlimited listings", "f2": "Top search placement", "f3": "Detailed analytics" }
     }
   },
@@ -309,10 +309,10 @@
   },
   "guestModal": {
     "title": "Sell & Rent on Gidana!",
-    "subtitle": "Join thousands of property owners who trust Gidana",
+    "subtitle": "Owners and agencies: list your first property for free",
     "benefit1": "List your properties in minutes",
-    "benefit2": "Reach thousands of buyers and tenants",
-    "benefit3": "Manage your transactions securely",
+    "benefit2": "Receive requests from tenants and buyers in the app",
+    "benefit3": "Reply to every message, even on the free plan",
     "signUpFree": "Sign up for free",
     "alreadyAccount": "Already have an account?",
     "signIn": "Sign in"
