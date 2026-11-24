@@ -238,20 +238,6 @@ export default StyleSheet.create({
     fontSize: 16,
     color: '#333',
   },
-  verifiedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: '#10b981',
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  verifiedText: {
-    fontFamily: 'Poppins-Medium',
-    fontSize: 10,
-    color: '#fff',
-  },
   ownerSince: {
     fontFamily: 'Poppins-Regular',
     fontSize: 12,

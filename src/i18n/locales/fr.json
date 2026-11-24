@@ -19,8 +19,8 @@
     "login": "Connexion",
     "detectLocation": "Détecter ma position",
     "heroTitle": "Trouvez votre\n",
-    "heroTitleHighlight": "logement idéal",
-    "heroSubtitle": "Découvrez des studios, appartements et maisons à louer",
+    "heroTitleHighlight": "chez-vous",
+    "heroSubtitle": "Studios, appartements et maisons à louer ou à acheter, dans votre budget",
     "searchInCity": "Rechercher à {{city}}...",
     "searchProperty": "Rechercher une propriété...",
     "categoriesSubtitle": "Catégories",
@@ -52,11 +52,11 @@
     "firstName": "Prénom",
     "lastName": "Nom",
     "createAccount": "Créer un compte",
-    "joinGidana": "Rejoignez Gidana pour trouver votre logement idéal",
+    "joinGidana": "Rejoignez Gidana pour trouver votre chez-vous",
     "phone": "Téléphone",
     "email": "Email",
     "emailAddress": "Adresse email",
-    "phoneInput": "Téléphone (+221XXXXXXXXX)",
+    "phoneInput": "Téléphone (+225XXXXXXXXXX)",
     "passwordMin": "Mot de passe (min. 6 caractères)",
     "signUp": "S'inscrire",
     "alreadyAccount": "Déjà un compte ?",
@@ -88,33 +88,33 @@
     "next": "Continuer",
     "start": "Commencer",
     "slide1": {
-      "title": "Trouvez votre\nlogement idéal",
-      "subtitle": "Trouver un studio n'a jamais été aussi simple",
-      "highlight": "Recherche simplifiée",
+      "title": "Trouvez votre\nchez-vous",
+      "subtitle": "Sans tourner en rond : seulement les biens dans votre budget et votre quartier",
+      "highlight": "Recherche ciblée",
       "features": [
-        "Des milliers d'annonces vérifiées",
         "Recherche par quartier, prix ou type",
+        "Photos de chaque bien",
         "Alertes personnalisées"
       ]
     },
     "slide2": {
       "title": "Trouvez ce qui\nvous correspond",
       "subtitle": "Trouvez ce dont vous avez besoin dans votre budget et contactez le propriétaire",
-      "highlight": "Mise en relation directe",
+      "highlight": "Discutez avant de vous déplacer",
       "features": [
         "Filtres adaptés à votre budget",
         "Contactez le propriétaire avant la visite",
-        "Visites virtuelles disponibles"
+        "Visitez seulement ce qui vous plaît"
       ]
     },
     "slide3": {
-      "title": "On s'occupe\nde tout",
-      "subtitle": "Nous gérons toutes les formalités pour vous",
-      "highlight": "Accompagnement complet",
+      "title": "Tout au même\nendroit",
+      "subtitle": "Favoris, contrats et paiements suivis dans l'app",
+      "highlight": "Suivi simplifié",
       "features": [
-        "Contrats de location simplifiés",
-        "Gestion administrative automatisée",
-        "Assistance juridique incluse"
+        "Vos favoris sauvegardés",
+        "Suivi de vos contrats de location",
+        "Paiements depuis votre portefeuille"
       ]
     }
   },
@@ -205,7 +205,7 @@
     "courtyard": "Cour",
     "description": "Description",
     "contactOwner": "Contacter le propriétaire",
-    "reserve": "Réserver",
+    "reserve": "Contacter le propriétaire",
     "autoMessage": "Bonjour, je suis intéressé(e) par votre annonce « {{title}} ». Est-elle toujours disponible ?",
     "reviews": "Avis ({{count}})",
     "leaveReview": "Laisser un avis",
@@ -287,7 +287,7 @@
     },
     "landlord": {
       "free": { "name": "Gratuit", "price": "0", "f1": "1 annonce active", "f2": "Répondre à tous les messages", "f3": "Visibilité standard" },
-      "standard": { "name": "Standard", "price": "3 000 XOF", "f1": "3 annonces actives", "f2": "Mis en avant dans la ville", "f3": "Badge vérifié" },
+      "standard": { "name": "Standard", "price": "3 000 XOF", "f1": "3 annonces actives", "f2": "Mis en avant dans la ville", "f3": "Badge Standard sur vos annonces" },
       "agency": { "name": "Agence", "price": "10 000 XOF", "f1": "Annonces illimitées", "f2": "Placement en tête de liste", "f3": "Analytiques détaillées" }
     }
   },
@@ -309,10 +309,10 @@
   },
   "guestModal": {
     "title": "Vendez & Louez sur Gidana !",
-    "subtitle": "Rejoignez des milliers de propriétaires qui font confiance à Gidana",
+    "subtitle": "Propriétaires et agences : publiez votre premier bien gratuitement",
     "benefit1": "Publiez vos biens en quelques minutes",
-    "benefit2": "Touchez des milliers d'acheteurs et locataires",
-    "benefit3": "Gérez vos transactions en toute sécurité",
+    "benefit2": "Recevez les demandes de locataires et d'acheteurs dans l'app",
+    "benefit3": "Répondez à tous les messages, même avec le plan gratuit",
     "signUpFree": "S'inscrire gratuitement",
     "alreadyAccount": "Vous avez déjà un compte ?",
     "signIn": "Se connecter"

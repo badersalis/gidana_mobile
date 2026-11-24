@@ -421,10 +421,6 @@ export default function PropertyDetailScreen() {
                       : `${ownerUser?.first_name || ''} ${ownerUser?.last_name || ''}`.trim() ||
                         t('propertyDetail.owner')}
                   </Text>
-                  <View style={styles.verifiedBadge}>
-                    <Ionicons name="checkmark-circle" size={13} color="#fff" />
-                    <Text style={styles.verifiedText}>{t('propertyDetail.verified')}</Text>
-                  </View>
                 </View>
                 <Text style={styles.ownerSince}>{t('propertyDetail.memberSince', { year: getMemberSinceYear() })}</Text>
               </View>
@@ -499,7 +495,7 @@ export default function PropertyDetailScreen() {
           {!isOwner && (
             <Button
               mode="contained"
-              icon="calendar-check"
+              icon="message-text-outline"
               loading={contactingOwner}
               disabled={contactingOwner}
               onPress={handleStartConversation}
